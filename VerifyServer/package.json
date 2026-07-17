@@ -1,0 +1,21 @@
+{
+  "name": "VerifyServer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "serve": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.4",
+    "@grpc/proto-loader": "^0.8.1",
+    "ioredis": "^5.11.1",
+    "nodemailer": "^9.0.1",
+    "redis": "^6.0.0",
+    "uuid": "^14.0.1"
+  }
+}

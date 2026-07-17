@@ -1,0 +1,134 @@
+#include "tcpmanager.h"
+#include <QAbstractSocket>
+#include "usermanager.h"
+TcpManager::~TcpManager(){
+
+};
+
+TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0)
+{
+    QObject::connect(&_socket,&QTcpSocket::connected,[&](){
+        qDebug()<< "Connected to server" ;
+        emit sig_con_success(true);
+    });
+
+    QObject::connect(&_socket,&QTcpSocket::readyRead,[&](){
+        _buffer.append(_socket.readAll());
+
+        forever{
+            QDataStream stream(&_buffer,QIODevice::ReadOnly);
+            stream.setVersion(QDataStream::Qt_5_0);
+
+            if(!_b_recv_pending){
+                if(_buffer.size()<static_cast<int>(sizeof(quint16)*2)){
+                    return;
+                }
+
+                stream >> _message_id >>_message_len;
+                _buffer = _buffer.mid(sizeof(quint16)*2);
+
+                qDebug() << "Message id: " <<_message_id <<", Length : "<< _message_len;
+            }
+
+            if(_buffer.size()<_message_len){
+                _b_recv_pending = true;
+                return;
+            }
+
+            _b_recv_pending = false;
+            QByteArray message = _buffer.mid(0,_message_len);
+
+            qDebug() << "Message is " << message;
+
+            _buffer= _buffer.mid(_message_len);
+            handleMessage(ReqID(_message_id),_message_len,message);
+        }
+    });
+
+    QObject::connect(&_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), [&](QAbstractSocket::SocketError socketError) {
+        Q_UNUSED(socketError)
+        qDebug() << "Error:" << _socket.errorString();
+    });
+
+    QObject::connect(&_socket, &QTcpSocket::disconnected, [&]() {
+        qDebug() << "Disconnected from server.";
+    });
+
+    QObject::connect(this, &TcpManager::sig_send_data, this, &TcpManager::slot_send_data);
+    initHandlers();
+}
+
+void TcpManager::initHandlers()
+{
+    _handlers.insert(ReqID::ID_CHAT_LOGIN_REP,[this](ReqID id,int len,QByteArray data){
+        Q_UNUSED(len);
+
+        qDebug()<<"handle id is "<< id <<" , data is "<< data;
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        if(jsonDoc.isNull()){
+            qDebug()<< "Failed to created JsonDocument";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        if(!jsonObj.contains("error")){
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "Login error , json parse error :" << err;
+            emit sig_login_failed(err);
+            return;
+        }
+
+        int err = jsonObj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() <<"Login error: "<<err;
+            emit sig_login_failed(err);
+            return;
+        }
+
+        UserManager::GetInstance()->SetUid(jsonObj["uid"].toInt());
+        UserManager::GetInstance()->SetName(jsonObj["name"].toString());
+        UserManager::GetInstance()->SetToken(jsonObj["token"].toString());
+        emit sig_switch_chatdialog();
+    });
+}
+
+
+void TcpManager::handleMessage(ReqID id, int len, QByteArray data)
+{
+    auto find_iter =  _handlers.find(id);
+    if(find_iter == _handlers.end()){
+        qDebug()<< "not found id ["<< id << "] to handle";
+        return ;
+    }
+
+    find_iter.value()(id,len,data);
+}
+
+void TcpManager::slot_tcp_connect(ServerInfo si)
+{
+    qDebug() << "Connect to server ...";
+    _host = si.Host;
+    _port = static_cast<uint16_t>(si.Port.toInt());
+    _socket.connectToHost(_host,_port);
+}
+
+void TcpManager::slot_send_data(ReqID reqid, QString data)
+{
+    uint16_t id = static_cast<uint16_t>(reqid);
+
+    quint16 len = static_cast<quint16>(data.length());
+
+    QByteArray block;
+    QDataStream out(&block,QIODevice::WriteOnly);
+
+    out.setByteOrder(QDataStream::BigEndian);
+    out<<id<<len;
+
+    block.append(data.toUtf8());
+
+    _socket.write(block);
+    qDebug() << "Send data: "<< block;
+}
+

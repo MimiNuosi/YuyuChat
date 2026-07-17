@@ -1,0 +1,31 @@
+# C++ 编译生成的中间文件和目录
+build/
+bin/
+*.o
+*.obj
+*.exe
+*.dll
+*.lib
+*.so
+*.out
+*.pdb
+*.ilk
+x64/
+Debug/
+Release/
+
+# CMake 缓存文件
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# 数据库本地日志和临时文件
+*.db
+*.log
+*.sql.gz
+
+# IDE 配置文件
+.vs/
+.vscode/
+*.user

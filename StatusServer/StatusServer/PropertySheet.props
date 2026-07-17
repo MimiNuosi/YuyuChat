@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <IncludePath>D:\cpp_progress\boost_1_90_0;C:\Users\yuyu\vcpkg\packages\jsoncpp_x64-windows\include;D:\Program Files\MySQL\mysql-connector-c++-9.7.0-winx64\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\yuyu\vcpkg\packages\jsoncpp_x64-windows\lib;D:\cpp_progress\boost_1_90_0\stage\lib;D:\Program Files\MySQL\mysql-connector-c++-9.7.0-winx64\lib64\debug\vs14;D:\Program Files\MySQL\mysql-connector-c++-9.7.0-winx64\lib64\vs14;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalLibraryDirectories>D:\Program Files\MySQL\mysql-connector-c++-9.7.0-winx64\lib64\vs14;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mysqlcppconn.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist $(SolutionDir)$(Platform)\$(Configuration)\plugin mkdir $(SolutionDir)$(Platform)\$(Configuration)\plugin
+xcopy $(ProjectDir)config.ini  $(SolutionDir)$(Platform)\$(Configuration)\   /y
+xcopy $(ProjectDir)*.dll   $(SolutionDir)$(Platform)\$(Configuration)\   /y
+xcopy "D:\Program Files\MySQL\mysql-connector-c++-9.7.0-winx64\lib64\plugin\mysql_native_password.dll" $(SolutionDir)$(Platform)\$(Configuration)\plugin\ /y
+xcopy "D:\Program Files\MySQL\mysql-connector-c++-9.7.0-winx64\lib64\libcrypto-3-x64.dll" $(SolutionDir)$(Platform)\$(Configuration)\plugin\ /y
+xcopy "D:\Program Files\MySQL\mysql-connector-c++-9.7.0-winx64\lib64\libssl-3-x64.dll" $(SolutionDir)$(Platform)\$(Configuration)\plugin\ /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>

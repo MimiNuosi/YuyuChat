@@ -1,0 +1,21 @@
+{
+    "email": {
+      "user": "zandou8361@163.com",
+      "pass": "RCTCxCkgBXQjrMrU"
+    },
+
+    "mysql": {
+      "host": "127.0.0.1",
+      "port": 3308,
+      "password": "guanyu666999",
+      "database": "yuyu"
+    },
+
+    "redis": {
+      "host": "127.0.0.1",
+      "port": 6380,
+      "password": "guanyu666999",
+      "db": 0
+    }
+}
+

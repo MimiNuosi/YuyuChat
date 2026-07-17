@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"D:\\Program Files\\MySQL\\mysql-connector-c++-9.7.0-winx64\\lib64\")",
+      "Read(//d/Program Files/MySQL/mysql-connector-c++-9.7.0-winx64/lib64/vs14/**)",
+      "Read(//d/Program Files/MySQL/mysql-connector-c++-9.7.0-winx64/lib64/debug/**)",
+      "Read(//d/Program Files/MySQL/mysql-connector-c++-9.7.0-winx64/lib64/**)",
+      "Read(//d/GateServer/x64/Debug/**)",
+      "Bash(cat \"D:/Program Files/MySQL/mysql-connector-c++-9.7.0-winx64/lib64/debug/mysqlcppconn-10-vs14.dll\")",
+      "Bash(cat \"D:/GateServer/x64/Debug/mysqlcppconn-10-vs14.dll\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
