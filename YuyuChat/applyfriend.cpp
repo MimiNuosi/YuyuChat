@@ -1,6 +1,7 @@
 #include "applyfriend.h"
 #include "ui_applyfriend.h"
 #include "usermanager.h"
+#include <QScrollBar>
 #define MIN_APPLY_LABEL_ED_LEN 50
 
 ApplyFriend::ApplyFriend(QWidget *parent) :

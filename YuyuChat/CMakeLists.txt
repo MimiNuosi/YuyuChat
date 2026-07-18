@@ -57,6 +57,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         adduseritem.h adduseritem.cpp adduseritem.ui
         findsuccessdialog.h findsuccessdialog.cpp findsuccessdialog.ui
         applyfriend.h applyfriend.cpp applyfriend.ui
+        contactuserlist.h contactuserlist.cpp
+        conuseritem.h conuseritem.cpp conuseritem.ui
+        grouptipitem.h grouptipitem.cpp grouptipitem.ui
+        userdata.h userdata.cpp
 
 
     )

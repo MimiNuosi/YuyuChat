@@ -5,7 +5,7 @@
 #include <QPushButton>
 #include <QMap>
 #include <QPoint>
-#include "searchlist.h"
+#include "userdata.h"
 namespace Ui {
 class ApplyFriend;
 };

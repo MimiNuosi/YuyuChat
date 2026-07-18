@@ -3,7 +3,7 @@
 
 #include <QDialog>
 #include <memory>
-#include "searchlist.h"
+#include "userdata.h"
 
 namespace Ui {
 class FindSuccessDialog;

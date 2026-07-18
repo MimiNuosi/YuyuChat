@@ -5,7 +5,7 @@
 #include <functional>
 #include "global.h"
 #include "singleton.h"
-#include "searchlist.h"
+#include "userdata.h"
 class TcpManager :public QObject,public Singleton<TcpManager>,public std::enable_shared_from_this<TcpManager>
 {
     Q_OBJECT

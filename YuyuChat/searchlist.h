@@ -8,16 +8,7 @@
 #include "loadingdialog.h"
 #include <memory>
 #include "global.h"
-
-class SearchInfo {
-public:
-    SearchInfo(int uid, QString name, QString nick, QString desc, int sex);
-    int _uid;
-    QString _name;
-    QString _nick;
-    QString _desc;
-    int _sex;
-};
+#include "userdata.h"
 
 class SearchList: public QListWidget
 {

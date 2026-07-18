@@ -6,12 +6,6 @@
 #include "findsuccessdialog.h"
 #include <QScrollBar>
 
-SearchInfo::SearchInfo(int uid, QString name, QString nick, QString desc, int sex)
-    : _uid(uid), _name(name), _nick(nick), _desc(desc), _sex(sex)
-{
-    // 构造函数实现：将传入的参数赋值给类的成员变量
-}
-
 SearchList::SearchList(QWidget *parent):QListWidget(parent),_find_dlg(nullptr), _search_edit(nullptr), _send_pending(false)
 {
     Q_UNUSED(parent);
