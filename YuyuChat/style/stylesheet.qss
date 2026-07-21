@@ -457,3 +457,9 @@ QLineEdit:focus {
     background: transparent;
     padding: 0px;
 }
+
+#already_add_label{
+color:rgb(153,153,153);
+font-size: 12px;
+font-family: "Microsoft YaHei";
+}

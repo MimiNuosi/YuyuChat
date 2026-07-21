@@ -110,7 +110,7 @@ message TextChatMsgRsp{
 }
 
 service ChatService{
-    rpc AddFriend(AddFriendReq) returns (AddFriendRsp) {}
+        rpc AddFriend(AddFriendReq) returns (AddFriendRsp) {}
     rpc ReplyFriend(ReplyFriendReq) returns (ReplyFriendRsp) {}
     rpc SendChatMsg(SendChatMsgReq) returns (SendChatMsgRsp) {}
     rpc AuthFriend(AuthFriendReq) returns (AuthFriendRsp) {}

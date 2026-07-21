@@ -61,6 +61,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         conuseritem.h conuseritem.cpp conuseritem.ui
         grouptipitem.h grouptipitem.cpp grouptipitem.ui
         userdata.h userdata.cpp
+        applyfriendpage.h applyfriendpage.cpp applyfriendpage.ui
+        applyfrienditem.h applyfrienditem.cpp applyfrienditem.ui
+        applyfriendlist.h applyfriendlist.cpp
 
 
     )

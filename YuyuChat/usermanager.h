@@ -4,6 +4,8 @@
 #include <QObject>
 #include <memory>
 #include <singleton.h>
+#include <vector>
+#include "userdata.h"
 
 class UserManager:public QObject,public Singleton<UserManager>,
                 public std::enable_shared_from_this<UserManager>
@@ -16,11 +18,13 @@ public:
     QString GetName();
     void SetUid(int uid);
     void SetToken(QString token);
+    std::vector<std::shared_ptr<ApplyInfo>> GetApplyList();
 private:
     UserManager();
     QString _name;
     QString _token;
     int _uid;
+    std::vector<std::shared_ptr<ApplyInfo>> _apply_list;
 };
 
 #endif // USERMANAGER_H
