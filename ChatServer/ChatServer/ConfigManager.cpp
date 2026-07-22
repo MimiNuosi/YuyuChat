@@ -1,5 +1,13 @@
 #include "ConfigManager.h"
 
+std::string ConfigManager::GetValue(const std::string& section, const std::string& key) {
+	if (_config_map.find(section) == _config_map.end()) {
+		return "";
+	}
+
+	return _config_map[section].GetValue(key);
+}
+
 ConfigManager::ConfigManager()
 {
 	boost::filesystem::path config_path = boost::filesystem::current_path() / "config.ini";

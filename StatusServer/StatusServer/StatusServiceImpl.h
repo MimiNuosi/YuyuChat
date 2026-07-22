@@ -14,10 +14,25 @@ using message::LoginReq;
 using message::LoginRsp;
 using message::StatusService;
 
-struct ChatServer {
-    std::string name; // 新增了名字
-    std::string host;
-    std::string port;
+class  ChatServer {
+public:
+	ChatServer() :host(""), port(""), name(""), con_count(0) {}
+	ChatServer(const ChatServer& cs) :host(cs.host), port(cs.port), name(cs.name), con_count(cs.con_count) {}
+	ChatServer& operator=(const ChatServer& cs) {
+		if (&cs == this) {
+			return *this;
+		}
+
+		host = cs.host;
+		name = cs.name;
+		port = cs.port;
+		con_count = cs.con_count;
+		return *this;
+	}
+	std::string host;
+	std::string port;
+	std::string name;
+	int con_count;
 };
 
 class StatusServiceImpl final : public StatusService::Service {

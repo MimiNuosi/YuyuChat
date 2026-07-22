@@ -18,7 +18,6 @@
 #include <json/reader.h>
 #include <cassert>
 
-
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace net = boost::asio;
@@ -40,5 +39,9 @@ enum ErrorCodes {
 	TokenInvalid = 1012,	//token²»ºÏ·¨	
 };
 
-#define CODEPREFIX "code_"
-const std::string USERTOKENPREFIX = "utoken_";
+constexpr const char* CODEPREFIX = "code_";
+constexpr const char* USERTOKENPREFIX = "utoken_";
+constexpr const char* USERIPPREFIX = "uip_";
+constexpr const char* IPCOUNTPREFIX = "ipcount_";
+constexpr const char* USER_BASE_INFO = "ubaseinfo_";
+constexpr const char* LOGIN_COUNT = "logincount";

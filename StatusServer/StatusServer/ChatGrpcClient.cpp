@@ -2,7 +2,7 @@
 #include "RedisManager.h"
 #include "ConfigManager.h"
 #include "MysqlManager.h"
-#include "Session.h"
+
 ChatGrpcClient::ChatGrpcClient()
 {
 	auto& config = ConfigManager::Inst();
@@ -13,14 +13,14 @@ ChatGrpcClient::ChatGrpcClient()
 	std::stringstream ss(server_info);
 	std::string word;
 
-	while (std::getline(ss,word,',')){
+	while (std::getline(ss, word, ',')) {
 		words.push_back(word);
 	}
 	for (auto& word : words) {
 		if (config[word]["Name"].empty()) {
 			continue;
 		}
-		_pools[config[word]["Name"]] = std::make_unique<RpcConnectionPool<ChatService>>(5, config[word]["Host"], config[word]["Port"]); 
+		_pools[config[word]["Name"]] = std::make_unique<RpcConnectionPool<ChatService>>(5, config[word]["Host"], config[word]["Port"]);
 	}
 }
 

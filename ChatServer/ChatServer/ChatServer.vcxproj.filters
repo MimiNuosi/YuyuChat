@@ -45,9 +45,6 @@
     <ClCompile Include="StatusGrpcClient.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="CServer.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="MsgNode.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -64,6 +61,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="ChatGrpcClient.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="UserManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ChatServiceImpl.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -104,9 +107,6 @@
     <ClInclude Include="StatusGrpcClient.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="CServer.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="MsgNode.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -120,6 +120,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="ChatGrpcClient.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="UserManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ChatServiceImpl.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

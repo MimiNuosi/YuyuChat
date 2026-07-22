@@ -35,16 +35,32 @@ StatusServiceImpl::StatusServiceImpl() : _server_index(0) {
 
 ChatServer StatusServiceImpl::getChatServer() {
     std::lock_guard<std::mutex> guard(_server_mtx);
-    if (_servers.empty()) {
-        return ChatServer(); // 容错处理
+    auto minServer = _servers.begin()->second;
+    auto count_str = RedisManager::GetInstance()->HGet(LOGIN_COUNT, minServer.name);
+    if (count_str.empty()) {
+        minServer.con_count = INT_MAX;
+    }
+    else {
+        minServer.con_count = std::stoi(count_str);
     }
 
-    // 防止越界，并且每次调用往后推一个服务器
-    _server_index = (_server_index + 1) % _servers.size();
+    for (auto& server : _servers) {
+        if (server.second.name == minServer.name) {
+            continue;
+        }
+        auto count_str = RedisManager::GetInstance()->HGet(LOGIN_COUNT, server.second.name);
+        if (count_str.empty()) {
+			server.second.con_count = INT_MAX;
+        }
+        else {
+			server.second.con_count = std::stoi(count_str);
+        }
 
-    auto it = _servers.begin();
-    std::advance(it, _server_index); // 将迭代器往前推
-    return it->second;
+        if (server.second.con_count < minServer.con_count) {
+            minServer = server.second;
+        }
+    }
+    return minServer;
 }
 
 void StatusServiceImpl::insertToken(int uid, std::string token) {

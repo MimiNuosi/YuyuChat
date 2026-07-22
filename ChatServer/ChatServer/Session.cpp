@@ -6,7 +6,7 @@
 Session::Session(boost::asio::io_context& ioc, Server* server) 
 	:_socket(ioc), _server(server), _recv_head_node(std::make_shared<MsgNode>(static_cast<short>(HEAD_TOTAL_LEN))) {
 	boost::uuids::uuid uuid = boost::uuids::random_generator()();
-	_uuid = boost::uuids::to_string(uuid);
+	_session_id = boost::uuids::to_string(uuid);
 	_data = new char[MAX_LENGTH];
 }
 
@@ -66,7 +66,7 @@ void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
 				std::cout << "Data Len: " << data_len << "\n";
 				if (data_len<0 || data_len>MAX_LENGTH) {
 					std::cerr << "Invalid data length is " << data_len << "\n";
-					_server->ClearSession(_uuid);
+					_server->ClearSession(_session_id);
 					return;
 				}
 
@@ -106,7 +106,7 @@ void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
 	}
 	else {
 		std::cerr << "Read error: " << ec.message() << "\n";
-		_server->ClearSession(_uuid);
+		_server->ClearSession(_session_id);
 	}
 }
 
@@ -131,6 +131,6 @@ void Session::HandleWrite(const boost::system::error_code& ec)
 		std::cerr << "Write error: " << ec.message() << "\n";
 		boost::system::error_code ec;
 		_socket.close(ec);
-		_server->ClearSession(_uuid);
+		_server->ClearSession(_session_id);
 	}
 }

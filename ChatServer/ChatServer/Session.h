@@ -25,11 +25,15 @@ public:
 	tcp::socket& GetSocket() {
 		return _socket;
 	}
-
-	std::string& GetUuid() {
-		return _uuid;
+	std::string& GetSessionId() {
+		return _session_id;
 	}
-
+	void SetUserId(int user_uid) {
+		_user_uid = user_uid;
+	}
+	int GetUserId() {
+		return _user_uid;
+	}
 	void Start();
 
 	void Send(const std::string msg, short msg_id);
@@ -42,7 +46,8 @@ private:
 
 	tcp::socket _socket;
 	Server* _server;
-	std::string _uuid;
+	std::string _session_id;
+	int _user_uid;
 	std::queue<std::shared_ptr<MsgNode>> _send_que;
 	std::mutex _mutex;
 	char* _data;
