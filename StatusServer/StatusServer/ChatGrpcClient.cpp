@@ -25,14 +25,19 @@ ChatGrpcClient::ChatGrpcClient()
 }
 
 AddFriendRsp ChatGrpcClient::AddFriend(std::string server_ip, const AddFriendReq& req) {
-
+	AddFriendRsp rsp;
+    return rsp;
 };
 AuthFriendRsp ChatGrpcClient::AuthFriend(std::string server_ip, const AuthFriendReq& req) {
-
+	AuthFriendRsp rsp;
+    return rsp;
 };
 
 bool ChatGrpcClient::GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo) {
+	return true;
 };
 
 TextChatMsgRsp ChatGrpcClient::TextChatMsg(std::string server_ip, const TextChatMsgReq& req, const Json::Value& rtvalue) {
+	TextChatMsgRsp rsp;
+    return rsp;
 };

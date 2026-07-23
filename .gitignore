@@ -29,3 +29,5 @@ cmake_install.cmake
 .vs/
 .vscode/
 *.user
+
+nul

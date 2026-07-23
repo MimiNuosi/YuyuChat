@@ -26,7 +26,8 @@ void Session::Send(const std::string msg, short msg_id)
 	auto msg_node = std::make_shared<SendNode>(msg, msg.size(), msg_id);
 
 	bool is_pending = !_send_que.empty();
-	if (!is_pending) return;
+	_send_que.push(msg_node);
+	if (is_pending) return;
 	auto self = shared_from_this();
 	boost::asio::async_write(_socket, boost::asio::buffer(msg_node->_data, msg_node->_total_len),
 		[self](const boost::system::error_code& ec, std::size_t bytes_transferred) {

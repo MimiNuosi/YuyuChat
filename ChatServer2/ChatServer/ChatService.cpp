@@ -31,7 +31,7 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
 		reader.parse(info_str, root);
         userinfo->uid = root["uid"].asInt();
         userinfo->name = root["name"].asString();
-        userinfo->password = root["pwd"].asString();
+        userinfo->password = root["password"].asString();
         userinfo->email = root["email"].asString();
         userinfo->nick = root["nick"].asString();
         userinfo->desc = root["desc"].asString();
@@ -115,7 +115,7 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     rtvalue["sex"] = user_info->sex;
 	rtvalue["icon"] = user_info->icon; 
 
-	auto server_name = ConfigManager::Inst().GetValue("ServerName","Name");
+	auto server_name = ConfigManager::Inst().GetValue("SelfServer","Name");
 	auto redis_res = RedisManager::GetInstance()->HGet(LOGIN_COUNT, server_name);
     int count = 0;
     if (!redis_res.empty()) {

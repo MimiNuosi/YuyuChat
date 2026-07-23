@@ -13,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(_login_dlg,&LoginDialog::switchRegister,this,&MainWindow::SlotSwitchReg);
     connect(_login_dlg, &LoginDialog::switchReset, this, &MainWindow::SlotSwitchReset);
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_switch_chatdialog, this, &MainWindow::SlotSwitchChat);
-    emit TcpManager::GetInstance()->sig_switch_chatdialog();
+    //emit TcpManager::GetInstance()->sig_switch_chatdialog();
 }
 
 MainWindow::~MainWindow()

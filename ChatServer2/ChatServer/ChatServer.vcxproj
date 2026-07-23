@@ -128,8 +128,8 @@
     <ClCompile Include="AsioIOContextPool.cpp" />
     <ClCompile Include="ChatServer.cpp" />
     <ClCompile Include="ChatService.cpp" />
+    <ClCompile Include="ChatServiceImpl.cpp" />
     <ClCompile Include="ConfigManager.cpp" />
-    <ClCompile Include="CServer.cpp" />
     <ClCompile Include="LogicSystem.cpp" />
     <ClCompile Include="message.grpc.pb.cc" />
     <ClCompile Include="message.pb.cc" />
@@ -141,12 +141,13 @@
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="Session.cpp" />
     <ClCompile Include="StatusGrpcClient.cpp" />
+    <ClCompile Include="UserManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsioIOContextPool.h" />
+    <ClInclude Include="ChatServiceImpl.h" />
     <ClInclude Include="ConfigManager.h" />
     <ClInclude Include="const.h" />
-    <ClInclude Include="CServer.h" />
     <ClInclude Include="LogicSystem.h" />
     <ClInclude Include="message.grpc.pb.h" />
     <ClInclude Include="message.pb.h" />
@@ -160,6 +161,7 @@
     <ClInclude Include="Session.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="StatusGrpcClient.h" />
+    <ClInclude Include="UserManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="config.ini" />

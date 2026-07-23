@@ -56,7 +56,7 @@ void LoginDialog::initHead()
 
 void LoginDialog::slot_forget_password()
 {
-    qDebug()<<"slot forget pwd";
+    qDebug()<<"slot forget password";
     emit switchReset();
 }
 
@@ -143,12 +143,13 @@ void LoginDialog::on_login_button_clicked()
         return; // 只要有一个不合法，直接拦截，不浪费网络资源
     }
 
+    ui->login_button->setEnabled(false);
     auto email = ui->email_edit->text();
-    auto pwd = ui->pass_edit->text();
+    auto password = ui->pass_edit->text();
 
     QJsonObject json_obj;
     json_obj["email"] = email;
-    json_obj["passwd"] = xorString(pwd);
+    json_obj["password"] = xorString(password);
 
     HttpManager::GetInstance()->PostHttpReq(QUrl(gate_url_prefix + "/user_login"),
                                             json_obj, ReqID::ID_LOGIN_USER, Modules::LOGINMOD);
@@ -156,6 +157,7 @@ void LoginDialog::on_login_button_clicked()
 
 void LoginDialog::slot_login_mod_finish(ReqID id, QString res, ErrorCodes err)
 {
+    ui->login_button->setEnabled(true);
     if(err!=ErrorCodes::SUCCESS){
         showTip(tr("网络请求错误"),false);
         return;

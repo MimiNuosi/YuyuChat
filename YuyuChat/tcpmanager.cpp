@@ -14,34 +14,38 @@ TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(
 
     QObject::connect(&_socket,&QTcpSocket::readyRead,[&](){
         _buffer.append(_socket.readAll());
+        qDebug() << "[网络日志] 收到数据，当前缓冲区总长度: " << _buffer.size();
 
         forever{
             QDataStream stream(&_buffer,QIODevice::ReadOnly);
             stream.setVersion(QDataStream::Qt_5_0);
+            stream.setByteOrder(QDataStream::BigEndian);
 
             if(!_b_recv_pending){
-                if(_buffer.size()<static_cast<int>(sizeof(quint16)*2)){
+                if(_buffer.size() < static_cast<int>(sizeof(quint16)*2)){
+                    qDebug() << "[网络日志] 数据不足包头长度(4字节)，继续等待...";
                     return;
                 }
 
-                stream >> _message_id >>_message_len;
+                stream >> _message_id >> _message_len;
                 _buffer = _buffer.mid(sizeof(quint16)*2);
 
-                qDebug() << "Message id: " <<_message_id <<", Length : "<< _message_len;
+                qDebug() << "[网络日志] 解析出包头 -> 消息ID: " << _message_id << ", 负载长度: " << _message_len;
             }
 
-            if(_buffer.size()<_message_len){
+            if(_buffer.size() < _message_len){
+                qDebug() << "[网络日志] 负载数据未接收完整 (目前 " << _buffer.size() << " / 需要 " << _message_len << ")，发生拆包，继续等待...";
                 _b_recv_pending = true;
                 return;
             }
 
             _b_recv_pending = false;
-            QByteArray message = _buffer.mid(0,_message_len);
+            QByteArray message = _buffer.mid(0, _message_len);
 
-            qDebug() << "Message is " << message;
+            qDebug() << "[网络日志] 成功读取完整消息负载: " << message;
 
-            _buffer= _buffer.mid(_message_len);
-            handleMessage(ReqID(_message_id),_message_len,message);
+            _buffer = _buffer.mid(_message_len);
+            handleMessage(ReqID(_message_id), _message_len, message);
         }
     });
 

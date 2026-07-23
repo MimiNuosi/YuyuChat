@@ -35,6 +35,12 @@ StatusServiceImpl::StatusServiceImpl() : _server_index(0) {
 
 ChatServer StatusServiceImpl::getChatServer() {
     std::lock_guard<std::mutex> guard(_server_mtx);
+    if (_servers.empty()) {
+        std::cerr << "[Error] _servers is empty! Please check config.ini" << std::endl;
+        ChatServer empty_server;
+        empty_server.port = "0";
+        return empty_server; // 如果是空的，提前返回，绝对不能往下走！
+    }
     auto minServer = _servers.begin()->second;
     auto count_str = RedisManager::GetInstance()->HGet(LOGIN_COUNT, minServer.name);
     if (count_str.empty()) {

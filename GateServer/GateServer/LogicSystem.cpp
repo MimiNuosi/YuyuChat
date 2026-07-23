@@ -40,7 +40,7 @@ void LogicSystem::RegPost(std::string url, HttpHandler handler)
 
 LogicSystem::LogicSystem()
 {
-    // »ñÈ¡ÑéÖ¤Âë
+    // ï¿½ï¿½È¡ï¿½ï¿½Ö¤ï¿½ï¿½
 	RegPost("/get_verifycode", [](std::shared_ptr<HttpConnection> connection) {
 		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
 		std::cout << "receive body is " << body_str << "\n";
@@ -67,7 +67,7 @@ LogicSystem::LogicSystem()
 		return true;
 		});
 
-    // ÓÃ»§×¢²á
+    // ï¿½Ã»ï¿½×¢ï¿½ï¿½
     RegPost("/user_register", [](std::shared_ptr<HttpConnection> connection) {
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -89,7 +89,7 @@ LogicSystem::LogicSystem()
         auto password = src_root["password"].asString();
         auto confirm = src_root["confirm"].asString();
 
-        //ÏÈ²éÕÒredisÖÐemail¶ÔÓ¦µÄÑéÖ¤ÂëÊÇ·ñºÏÀí
+        //ï¿½È²ï¿½ï¿½ï¿½redisï¿½ï¿½emailï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½Ö¤ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
         std::string  verify_code;
         bool b_get_verify = RedisManager::GetInstance()->Get(CODEPREFIX + src_root["email"].asString(), verify_code);
         if (!b_get_verify) {
@@ -129,7 +129,7 @@ LogicSystem::LogicSystem()
         return true;
         });
 
-    //ÖØÖÃ»Øµ÷Âß¼­
+    //ï¿½ï¿½ï¿½Ã»Øµï¿½ï¿½ß¼ï¿½
     RegPost("/reset_pwd", [](std::shared_ptr<HttpConnection> connection) {
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -148,9 +148,9 @@ LogicSystem::LogicSystem()
 
         auto email = src_root["email"].asString();
         auto name = src_root["user"].asString();
-        auto pwd = src_root["passwd"].asString();
+        auto pwd = src_root["password"].asString();
 
-        //ÏÈ²éÕÒredisÖÐemail¶ÔÓ¦µÄÑéÖ¤ÂëÊÇ·ñºÏÀí
+        //ï¿½È²ï¿½ï¿½ï¿½redisï¿½ï¿½emailï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½Ö¤ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
         std::string  verify_code;
         bool b_get_verify = RedisManager::GetInstance()->Get(CODEPREFIX + src_root["email"].asString(), verify_code);
         if (!b_get_verify) {
@@ -168,7 +168,7 @@ LogicSystem::LogicSystem()
             beast::ostream(connection->_response.body()) << jsonstr;
             return true;
         }
-        //²éÑ¯Êý¾Ý¿âÅÐ¶ÏÓÃ»§ÃûºÍÓÊÏäÊÇ·ñÆ¥Åä
+        //ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½Ð¶ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Æ¥ï¿½ï¿½
         bool email_valid = MysqlManager::GetInstance()->CheckEmail(name, email);
         if (!email_valid) {
             std::cout << " user email not match" << std::endl;
@@ -178,7 +178,7 @@ LogicSystem::LogicSystem()
             return true;
         }
 
-        //¸üÐÂÃÜÂëÎª×îÐÂÃÜÂë
+        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         bool b_up = MysqlManager::GetInstance()->UpdatePwd(name, pwd);
         if (!b_up) {
             std::cout << " update pwd failed" << std::endl;
@@ -199,7 +199,7 @@ LogicSystem::LogicSystem()
         return true;
         });
 
-    // ÓÃ»§µÇÂ¼Âß¼­
+    // ï¿½Ã»ï¿½ï¿½ï¿½Â¼ï¿½ß¼ï¿½
     RegPost("/user_login", [](std::shared_ptr<HttpConnection> connection) {
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -216,10 +216,10 @@ LogicSystem::LogicSystem()
             return true;
         }
         auto email = src_root["email"].asString();
-        auto pwd = src_root["passwd"].asString();
+        auto pwd = src_root["password"].asString();
         UserInfo userInfo;
 
-        // ²éÑ¯Êý¾Ý¿âÅÐ¶ÏÓÃ»§ÃûºÍÃÜÂëÊÇ·ñÆ¥Åä
+        // ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½Ð¶ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Æ¥ï¿½ï¿½
         bool pwd_valid = MysqlManager::GetInstance()->CheckPwd(email, pwd, userInfo);
         if (!pwd_valid) {
             std::cout << "user pwd not match" << std::endl;

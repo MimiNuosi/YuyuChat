@@ -32,7 +32,7 @@ bool CheckPassValid(const QString& pass, QString& err_msg) {
         err_msg = "密码长度应为6~15";
         return false;
     }
-    QRegularExpression regExp("^[a-zA-Z0-9!@#$%^&*]{6,15}$");
+    QRegularExpression regExp("^[a-zA-Z0-9!@#$%^&*.]{6,15}$");
     if (!regExp.match(pass).hasMatch()) {
         err_msg = "不能包含非法字符";
         return false;
