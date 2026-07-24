@@ -176,6 +176,7 @@ bool RedisManager::HDel(const std::string& key, const std::string& hkey) {
         return false;
     }
 }
+
 bool RedisManager::ExistsKey(const std::string& key) {
     if (!_redis) return false;
     try {

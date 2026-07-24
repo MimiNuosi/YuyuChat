@@ -10,12 +10,8 @@
 
 class SearchInfo {
 public:
-    SearchInfo(int uid, QString name, QString nick, QString desc, int sex)
-        : _uid(uid), _name(name), _nick(nick), _desc(desc), _sex(sex)
-    {
-        // 构造函数实现：将传入的参数赋值给类的成员变量
-    }
-    SearchInfo(int uid, QString name, QString nick, QString desc, int sex, QString icon);
+    SearchInfo(int uid, QString name, QString nick, QString desc, int sex , QString icon)
+        : _uid(uid), _name(name), _nick(nick), _desc(desc), _sex(sex), _icon(icon){}
     int _uid;
     QString _name;
     QString _nick;

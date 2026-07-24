@@ -10,9 +10,6 @@
 #include "RedisManager.h"
 #include "UserManager.h"
 
-const short MSG_CHAT_LOGIN = 1005;
-const short MSG_CHAT_LOGIN_REP = 1006;
-
 namespace {
     std::map<int, std::shared_ptr<UserInfo>> g_users;
     std::mutex g_users_mtx;
@@ -64,6 +61,121 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
     g_users[uid] = userinfo;
     std::cout << "[追踪] GetBaseInfo 执行完毕，成功返回" << std::endl;
     return true;
+}
+
+bool isPureDigit(const std::string& str) {
+    if (str.empty()) return false;
+    for (char c : str) {
+        if (!std::isdigit(c)) return false;
+    }
+    return true;
+}
+
+// 通过 UID 搜索
+void GetUserByUid(const std::string& uid_str, Json::Value& rtvalue) {
+    rtvalue["error"] = ErrorCodes::Success;
+
+    std::string base_key = USER_BASE_INFO + uid_str;
+    std::string info_str = "";
+
+    // 第一步：优先去 Redis 查
+    bool b_base = RedisManager::GetInstance()->Get(base_key, info_str);
+    if (b_base) {
+        std::cout << "[追踪] GetUserByUid 命中 Redis 缓存" << std::endl;
+        Json::Reader reader;
+        Json::Value root;
+        reader.parse(info_str, root);
+
+        rtvalue["uid"] = root["uid"].asInt();
+        rtvalue["name"] = root["name"].asString();
+        rtvalue["nick"] = root["nick"].asString();
+        rtvalue["desc"] = root["desc"].asString();
+        rtvalue["sex"] = root["sex"].asInt();
+        rtvalue["icon"] = root["icon"].asString();
+        return; // 缓存命中，直接返回，不再打扰 MySQL
+    }
+
+    // 第二步：Redis 没查到，去查 MySQL
+    std::cout << "[追踪] GetUserByUid 缓存未命中，开始查询 MySQL..." << std::endl;
+    std::shared_ptr<UserInfo> user_info = MysqlManager::GetInstance()->GetUser(uid_str);
+
+    if (user_info != nullptr) {
+        rtvalue["uid"] = user_info->uid;
+        rtvalue["name"] = user_info->name;
+        rtvalue["nick"] = user_info->nick;
+        rtvalue["desc"] = user_info->desc;
+        rtvalue["sex"] = user_info->sex;
+        rtvalue["icon"] = user_info->icon;
+
+        // 第三步：把 MySQL 查到的数据写回 Redis，方便下次查询
+        Json::Value redis_root;
+        redis_root["uid"] = user_info->uid;
+        redis_root["name"] = user_info->name;
+        redis_root["nick"] = user_info->nick;
+        redis_root["desc"] = user_info->desc;
+        redis_root["sex"] = user_info->sex;
+        redis_root["icon"] = user_info->icon;
+
+        RedisManager::GetInstance()->Set(base_key, redis_root.toStyledString());
+        std::cout << "[追踪] MySQL 数据已回写至 Redis (Key: " << base_key << ")" << std::endl;
+    }
+    else {
+        rtvalue["error"] = ErrorCodes::UidInvalid; // 查无此人
+    }
+}
+
+// 通过用户名搜索
+// 3. 辅助函数：通过用户名搜索 (加入 Redis 缓存机制)
+void GetUserByName(const std::string& name, Json::Value& rtvalue) {
+    rtvalue["error"] = ErrorCodes::Success;
+
+    std::string base_key = NAME_INFO + name;
+    std::string info_str = "";
+
+    // 第一步：优先去 Redis 查
+    bool b_base = RedisManager::GetInstance()->Get(base_key, info_str);
+    if (b_base) {
+        std::cout << "[追踪] GetUserByName 命中 Redis 缓存" << std::endl;
+        Json::Reader reader;
+        Json::Value root;
+        reader.parse(info_str, root);
+
+        rtvalue["uid"] = root["uid"].asInt();
+        rtvalue["name"] = root["name"].asString();
+        rtvalue["nick"] = root["nick"].asString();
+        rtvalue["desc"] = root["desc"].asString();
+        rtvalue["sex"] = root["sex"].asInt();
+        rtvalue["icon"] = root["icon"].asString();
+        return; // 缓存命中，直接返回，不再打扰 MySQL
+    }
+
+    // 第二步：Redis 没查到，去查 MySQL
+    std::cout << "[追踪] GetUserByName 缓存未命中，开始查询 MySQL..." << std::endl;
+    std::shared_ptr<UserInfo> user_info = MysqlManager::GetInstance()->GetUser(name);
+
+    if (user_info != nullptr) {
+        rtvalue["uid"] = user_info->uid;
+        rtvalue["name"] = user_info->name;
+        rtvalue["nick"] = user_info->nick;
+        rtvalue["desc"] = user_info->desc;
+        rtvalue["sex"] = user_info->sex;
+        rtvalue["icon"] = user_info->icon;
+
+        // 第三步：把 MySQL 查到的数据写回 Redis，方便下次查询
+        Json::Value redis_root;
+        redis_root["uid"] = user_info->uid;
+        redis_root["name"] = user_info->name;
+        redis_root["nick"] = user_info->nick;
+        redis_root["desc"] = user_info->desc;
+        redis_root["sex"] = user_info->sex;
+        redis_root["icon"] = user_info->icon;
+
+        RedisManager::GetInstance()->Set(base_key, redis_root.toStyledString());
+        std::cout << "[追踪] MySQL 数据已回写至 Redis (Key: " << base_key << ")" << std::endl;
+    }
+    else {
+        rtvalue["error"] = ErrorCodes::UidInvalid; // 查无此人
+    }
 }
 
 void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
@@ -143,4 +255,28 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     return;
 }
 
+void ChatSearchHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+
+    auto uid_str = root["uid"].asString();
+    Json::Value rtvalue;
+
+    // 无论下面逻辑如何 return，退出时必然发送回包
+    Defer defer([&session, &rtvalue]() {
+        std::string return_str = rtvalue.toStyledString();
+        session->Send(return_str, ID_SEARCH_USER_RSP);
+        });
+
+    bool b_digit = isPureDigit(uid_str);
+    if (b_digit) {
+        GetUserByUid(uid_str, rtvalue);
+    }
+    else {
+        GetUserByName(uid_str, rtvalue);
+    }
+}
+
+REGISTER_CALL_BACK(ID_SEARCH_USER_REQ, ChatSearchHandler);
 REGISTER_CALL_BACK(MSG_CHAT_LOGIN, ChatLoginHandler);

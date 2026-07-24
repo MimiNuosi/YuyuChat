@@ -2,7 +2,7 @@
 #include "ui_findsuccessdialog.h"
 #include "applyfriend.h"
 FindSuccessDialog::FindSuccessDialog(QWidget *parent) :
-    QDialog(parent),
+    QDialog(parent),_parent(parent),
     ui(new Ui::FindSuccessDialog)
 {
     ui->setupUi(this);
@@ -22,7 +22,7 @@ FindSuccessDialog::FindSuccessDialog(QWidget *parent) :
         ApplyFriend* applyFriendDlg = new ApplyFriend(parent->window());
 
         // 2. (可选) 如果 ApplyFriend 需要知道当前正在添加谁
-        // applyFriendDlg->SetSearchInfo(this->_si);
+        applyFriendDlg->SetSearchInfo(this->_si);
 
         // 3. 🌟 关键：先让新窗口显示出来！抢占焦点！
         applyFriendDlg->show();
@@ -42,9 +42,4 @@ void FindSuccessDialog::SetSearchInfo(std::shared_ptr<SearchInfo> si)
 {
     ui->name_label->setText(si->_name);
     _si = si;
-}
-
-void FindSuccessDialog::on_add_friend_btn_clicked()
-{
-    //todo... 添加好友界面弹出
 }

@@ -4,7 +4,9 @@
 #include "loadingdialog.h"
 #include "adduseritem.h"
 #include "findsuccessdialog.h"
+#include "findfaildialog.h"
 #include <QScrollBar>
+#include <QJsonDocument>
 
 SearchList::SearchList(QWidget *parent):QListWidget(parent),_find_dlg(nullptr), _search_edit(nullptr), _send_pending(false)
 {
@@ -29,6 +31,11 @@ void SearchList::CloseFindDlg()
     }
 }
 
+void SearchList::SetSearchEdit(QWidget *edit)
+{
+    _search_edit = edit;
+}
+
 bool SearchList::eventFilter(QObject *watched, QEvent *event) {
     // 检查事件是否是鼠标悬浮进入或离开 (这部分保留)
     if (watched == this->viewport()) {
@@ -43,6 +50,23 @@ bool SearchList::eventFilter(QObject *watched, QEvent *event) {
     // if (watched == this->viewport() && event->type() == QEvent::Wheel) { ... }
 
     return QListWidget::eventFilter(watched, event);
+}
+
+void SearchList::waitPending(bool pending)
+{
+    if(pending){
+        _loadingDialog = new LoadingDialog(this);
+        _loadingDialog->setModal(true);
+        _loadingDialog->show();
+    }
+    else{
+        if(_loadingDialog){
+            _loadingDialog->hide();
+            _loadingDialog->deleteLater();
+            _loadingDialog = nullptr;
+        }
+    }
+    _send_pending = pending;
 }
 
 void SearchList::addTipItem()
@@ -67,7 +91,23 @@ void SearchList::addTipItem()
 
 void SearchList::slot_user_search(std::shared_ptr<SearchInfo> si)
 {
-    // 槽函数实现暂时留空，防止编译报错
+    waitPending(false);
+    if (_find_dlg != nullptr) {
+        _find_dlg->deleteLater();
+        _find_dlg = nullptr;
+    }
+
+    if(si == nullptr){
+        _find_dlg = new FindFailDialog(this);
+    }
+    else{
+        _find_dlg = new FindSuccessDialog(this);
+        FindSuccessDialog* success_dlg = dynamic_cast<FindSuccessDialog*>(_find_dlg);
+        if (success_dlg) {
+            success_dlg->SetSearchInfo(si);
+        }
+    }
+    _find_dlg->show();
 }
 
 void SearchList::slot_item_clicked(QListWidgetItem *item)
@@ -92,22 +132,24 @@ void SearchList::slot_item_clicked(QListWidgetItem *item)
     }
 
     if(itemType == ListItemType::ADD_USER_TIP_ITEM){
-        if (_find_dlg == nullptr) {
-            _find_dlg = new FindSuccessDialog(this);
+        if (_send_pending || !_search_edit){
+            return;
         }
 
-        auto si = std::make_shared<SearchInfo>(0,"llfc","llfc","hello , my friend!",0);
+        waitPending(true);
+        auto search_edit = dynamic_cast<CustomizeEdit*>(_search_edit);
+        auto user_str = search_edit->text();
+        QJsonObject jsonObj;
+        jsonObj["uid"] = user_str;
 
-        FindSuccessDialog* successDlg = dynamic_cast<FindSuccessDialog*>(_find_dlg);
-        if (successDlg) {
-            successDlg->SetSearchInfo(si);
-        }
+        QJsonDocument doc(jsonObj);
+        QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+        emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_SEARCH_USER_REQ,jsonData);
 
-        _find_dlg->show();
         return;
     }
 
-    //清楚弹出框
+    //清除弹出框
     CloseFindDlg();
 
 }

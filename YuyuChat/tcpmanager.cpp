@@ -96,6 +96,32 @@ void TcpManager::initHandlers()
         UserManager::GetInstance()->SetToken(jsonObj["token"].toString());
         emit sig_switch_chatdialog();
     });
+
+    _handlers.insert(ReqID::ID_SEARCH_USER_RSP,[this](ReqID id,int len,QByteArray data){
+        Q_UNUSED(len);
+
+        qDebug()<<"handle id is "<< id <<" , data is "<< data;
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        if(jsonDoc.isNull()){
+            qDebug()<< "Failed to created JsonDocument";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        int err = jsonObj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Search User Failed, err is " << err ;
+            emit sig_user_search(nullptr);
+            return;
+        }
+
+        auto search_info = std::make_shared<SearchInfo>(jsonObj["uid"].toInt(),
+                                                        jsonObj["name"].toString(), jsonObj["nick"].toString(),
+                                                        jsonObj["desc"].toString(), jsonObj["sex"].toInt(), jsonObj["icon"].toString());
+        emit sig_user_search(search_info);
+    });
 }
 
 
@@ -118,7 +144,7 @@ void TcpManager::slot_tcp_connect(ServerInfo si)
     _socket.connectToHost(_host,_port);
 }
 
-void TcpManager::slot_send_data(ReqID reqid, QString data)
+void TcpManager::slot_send_data(ReqID reqid, QByteArray data)
 {
     uint16_t id = static_cast<uint16_t>(reqid);
 
@@ -130,7 +156,7 @@ void TcpManager::slot_send_data(ReqID reqid, QString data)
     out.setByteOrder(QDataStream::BigEndian);
     out<<id<<len;
 
-    block.append(data.toUtf8());
+    block.append(data);
 
     _socket.write(block);
     qDebug() << "Send data: "<< block;

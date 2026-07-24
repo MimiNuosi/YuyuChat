@@ -26,10 +26,10 @@ private:
     QMap<ReqID,std::function<void(ReqID id,int len,QByteArray data)>> _handlers;
 public slots:
     void slot_tcp_connect(ServerInfo);
-    void slot_send_data(ReqID id,QString data);
+    void slot_send_data(ReqID id,QByteArray data);
 signals:
     void sig_con_success(bool b_success);
-    void sig_send_data(ReqID id,QString data);
+    void sig_send_data(ReqID id,QByteArray data);
     void sig_switch_chatdialog();
     void sig_login_failed(int);
     void sig_user_search(std::shared_ptr<SearchInfo> si);

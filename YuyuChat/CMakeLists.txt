@@ -64,6 +64,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         applyfriendpage.h applyfriendpage.cpp applyfriendpage.ui
         applyfrienditem.h applyfrienditem.cpp applyfrienditem.ui
         applyfriendlist.h applyfriendlist.cpp
+        findfaildialog.h findfaildialog.cpp findfaildialog.ui
 
 
     )

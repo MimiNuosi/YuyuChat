@@ -23,19 +23,19 @@ int MysqlDAO::RegUser(const std::string& name, const std::string& email, const s
         if (con == nullptr) {
             return false;
         }
-        // ×¼±¸µ÷ÓÃ´æ´¢¹ý³Ì
+        // ×¼ï¿½ï¿½ï¿½ï¿½ï¿½Ã´æ´¢ï¿½ï¿½ï¿½ï¿½
         std::unique_ptr < sql::PreparedStatement > stmt(con->_con->prepareStatement("CALL reg_user(?,?,?,@result)"));
-        // ÉèÖÃÊäÈë²ÎÊý
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         stmt->setString(1, name);
         stmt->setString(2, email);
         stmt->setString(3, pwd);
 
-        // ÓÉÓÚPreparedStatement²»Ö±½ÓÖ§³Ö×¢²áÊä³ö²ÎÊý£¬ÎÒÃÇÐèÒªÊ¹ÓÃ»á»°±äÁ¿»òÆäËû·½·¨À´»ñÈ¡Êä³ö²ÎÊýµÄÖµ
+        // ï¿½ï¿½ï¿½ï¿½PreparedStatementï¿½ï¿½Ö±ï¿½ï¿½Ö§ï¿½ï¿½×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÒªÊ¹ï¿½Ã»á»°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
 
-          // Ö´ÐÐ´æ´¢¹ý³Ì
+          // Ö´ï¿½Ð´æ´¢ï¿½ï¿½ï¿½ï¿½
         stmt->execute();
-        // Èç¹û´æ´¢¹ý³ÌÉèÖÃÁË»á»°±äÁ¿»òÓÐÆäËû·½Ê½»ñÈ¡Êä³ö²ÎÊýµÄÖµ£¬Äã¿ÉÒÔÔÚÕâÀïÖ´ÐÐSELECT²éÑ¯À´»ñÈ¡ËüÃÇ
-       // ÀýÈç£¬Èç¹û´æ´¢¹ý³ÌÉèÖÃÁËÒ»¸ö»á»°±äÁ¿@resultÀ´´æ´¢Êä³ö½á¹û£¬¿ÉÒÔÕâÑù»ñÈ¡£º
+        // ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë»á»°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½SELECTï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½
+       // ï¿½ï¿½ï¿½ç£¬ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½á»°ï¿½ï¿½ï¿½ï¿½@resultï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½
         std::unique_ptr<sql::Statement> stmtResult(con->_con->createStatement());
         std::unique_ptr<sql::ResultSet> res(stmtResult->executeQuery("SELECT @result AS result"));
         if (res->next()) {
@@ -64,16 +64,16 @@ bool MysqlDAO::CheckEmail(const std::string& name, const std::string& email) {
             return false;
         }
 
-        // ×¼±¸²éÑ¯Óï¾ä
+        // ×¼ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("SELECT email FROM user WHERE name = ?"));
 
-        // °ó¶¨²ÎÊý
+        // ï¿½ó¶¨²ï¿½ï¿½ï¿½
         pstmt->setString(1, name);
 
-        // Ö´ÐÐ²éÑ¯
+        // Ö´ï¿½Ð²ï¿½Ñ¯
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
-        // ±éÀú½á¹û¼¯
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         while (res->next()) {
             std::cout << "Check Email: " << res->getString("email") << std::endl;
             if (email != res->getString("email")) {
@@ -83,6 +83,8 @@ bool MysqlDAO::CheckEmail(const std::string& name, const std::string& email) {
             pool_->returnConnection(std::move(con));
             return true;
         }
+        pool_->returnConnection(std::move(con));
+        return false;
     }
     catch (sql::SQLException& e) {
         pool_->returnConnection(std::move(con));
@@ -101,14 +103,14 @@ bool MysqlDAO::UpdatePwd(const std::string& name, const std::string& newpwd) {
             return false;
         }
 
-        // ×¼±¸²éÑ¯Óï¾ä
+        // ×¼ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ï¿½
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("UPDATE user SET password = ? WHERE name = ?"));
 
-        // °ó¶¨²ÎÊý
+        // ï¿½ó¶¨²ï¿½ï¿½ï¿½
         pstmt->setString(2, name);
         pstmt->setString(1, newpwd);
 
-        // Ö´ÐÐ¸üÐÂ
+        // Ö´ï¿½Ð¸ï¿½ï¿½ï¿½
         int updateCount = pstmt->executeUpdate();
 
         std::cout << "Updated rows: " << updateCount << std::endl;
@@ -142,7 +144,7 @@ bool MysqlDAO::CheckPwd(const std::string& name, const std::string& pwd, UserInf
             origin_pwd = res->getString("password");
             std::cout << "Password: " << origin_pwd << std::endl;
 
-            // ÃÜÂë±È¶Ô
+            // ï¿½ï¿½ï¿½ï¿½È¶ï¿½
             if (pwd != origin_pwd) {
                 pool_->returnConnection(std::move(con));
                 return false;
@@ -157,7 +159,7 @@ bool MysqlDAO::CheckPwd(const std::string& name, const std::string& pwd, UserInf
             return true;
         }
         else {
-            // Ã»ÓÐ²éÑ¯µ½¸ÃÓÃ»§
+            // Ã»ï¿½Ð²ï¿½Ñ¯ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½
             pool_->returnConnection(std::move(con));
             return false;
         }
@@ -183,20 +185,21 @@ std::shared_ptr<UserInfo> MysqlDAO::GetUser(int uid)
         });
 
     try {
-        // ×¼±¸SQLÓï¾ä
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("SELECT * FROM user WHERE uid = ?"));
-        pstmt->setInt(1, uid); // ½«uidÌæ»»ÎªÄãÒª²éÑ¯µÄuid
+        pstmt->setInt(1, uid); 
 
-        // Ö´ÐÐ²éÑ¯
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
         std::shared_ptr<UserInfo> user_ptr = nullptr;
-        // ±éÀú½á¹û¼¯
         while (res->next()) {
             user_ptr.reset(new UserInfo);
             user_ptr->password = res->getString("password");
             user_ptr->email = res->getString("email");
             user_ptr->name = res->getString("name");
-            user_ptr->uid = uid;
+            user_ptr->uid = res->getInt("uid");
+            user_ptr->nick = res->getString("nick");
+            user_ptr->desc = res->getString("desc");
+            user_ptr->sex = res->getInt("sex");
+            user_ptr->icon = res->getString("icon");
             break;
         }
         return user_ptr;
@@ -221,20 +224,21 @@ std::shared_ptr<UserInfo> MysqlDAO::GetUser(std::string name)
         });
 
     try {
-        // ×¼±¸SQLÓï¾ä
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("SELECT * FROM user WHERE name = ?"));
-        pstmt->setString(1, name); // ½«uidÌæ»»ÎªÄãÒª²éÑ¯µÄuid
+        pstmt->setString(1, name);
 
-        // Ö´ÐÐ²éÑ¯
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
         std::shared_ptr<UserInfo> user_ptr = nullptr;
-        // ±éÀú½á¹û¼¯
         while (res->next()) {
             user_ptr.reset(new UserInfo);
             user_ptr->password = res->getString("password");
             user_ptr->email = res->getString("email");
             user_ptr->name = res->getString("name");
             user_ptr->uid = res->getInt("uid");
+			user_ptr->nick = res->getString("nick");
+			user_ptr->desc = res->getString("desc");
+			user_ptr->sex = res->getInt("sex");
+			user_ptr->icon = res->getString("icon");
             break;
         }
         return user_ptr;

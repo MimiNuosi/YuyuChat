@@ -18,7 +18,6 @@ public:
     ~FindSuccessDialog();
     void SetSearchInfo(std::shared_ptr<SearchInfo> si);
 private slots:
-    void on_add_friend_btn_clicked();
 
 private:
     Ui::FindSuccessDialog *ui;
