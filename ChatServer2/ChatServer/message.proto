@@ -47,7 +47,11 @@ message AddFriendReq{
     int32 applyuid = 1;
     string name = 2;
     string desc = 3;
-    int32 touid = 4;
+    string icon = 4;
+    string nick = 5;
+    int32 sex = 6;
+    int32 touid = 7;
+
 }
 
 message AddFriendRsp{
@@ -115,5 +119,4 @@ service ChatService{
     rpc SendChatMsg(SendChatMsgReq) returns (SendChatMsgRsp) {}
     rpc AuthFriend(AuthFriendReq) returns (AuthFriendRsp) {}
     rpc TextChatMsg(TextChatMsgReq) returns (TextChatMsgRsp) {}
-
 }

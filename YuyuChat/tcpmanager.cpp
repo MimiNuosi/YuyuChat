@@ -105,6 +105,7 @@ void TcpManager::initHandlers()
 
         if(jsonDoc.isNull()){
             qDebug()<< "Failed to created JsonDocument";
+            emit sig_user_search(nullptr);
             return;
         }
 
@@ -121,6 +122,58 @@ void TcpManager::initHandlers()
                                                         jsonObj["name"].toString(), jsonObj["nick"].toString(),
                                                         jsonObj["desc"].toString(), jsonObj["sex"].toInt(), jsonObj["icon"].toString());
         emit sig_user_search(search_info);
+    });
+
+    _handlers.insert(ReqID::ID_ADD_FRIEND_REQ,[this](ReqID id,int len,QByteArray data){
+        Q_UNUSED(len);
+
+        qDebug()<<"handle id is "<< id <<" , data is "<< data;
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        if(jsonDoc.isNull()){
+            qDebug()<< "Failed to created JsonDocument";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        int err = jsonObj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Add User Failed, err is " << err ;
+            return;
+        }
+    });
+
+    _handlers.insert(ReqID::ID_ADD_FRIEND_RSP,[this](ReqID id,int len,QByteArray data){
+        Q_UNUSED(len);
+
+        qDebug()<<"handle id is "<< id <<" , data is "<< data;
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        if(jsonDoc.isNull()){
+            qDebug()<< "Failed to created JsonDocument";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        int err = jsonObj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Add User Failed, err is " << err ;
+            return;
+        }
+
+        int from_uid = jsonObj["applyuid"].toInt();
+        QString name = jsonObj["name"].toString();
+        QString desc = jsonObj["desc"].toString();
+        QString icon = jsonObj["icon"].toString();
+        QString nick = jsonObj["nick"].toString();
+        int sex = jsonObj["sex"].toInt();
+
+        auto apply_info = std::make_shared<AddFriendApply>(
+            from_uid, name, desc,
+            icon, nick, sex);
+        emit sig_friend_apply(apply_info);
     });
 }
 

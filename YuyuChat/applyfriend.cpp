@@ -1,6 +1,7 @@
 #include "applyfriend.h"
 #include "ui_applyfriend.h"
 #include "usermanager.h"
+#include "tcpmanager.h"
 #include <QScrollBar>
 #define MIN_APPLY_LABEL_ED_LEN 50
 
@@ -280,6 +281,28 @@ void ApplyFriend::SlotApplyCancel(){
 
 void ApplyFriend::SlotApplySure(){
     qDebug()<<"确认添加好友";
+    QJsonObject jsonObj;
+    auto uid = UserManager::GetInstance()->GetUid();
+    jsonObj["uid"] = uid;
+
+    auto name = ui->name_edit->text();
+    if(name.isEmpty()){
+        name = ui->name_edit->placeholderText();
+    }
+    jsonObj["applyname"] = name;
+
+    auto back_name = ui->back_edit->text();
+    if(back_name.isEmpty()){
+        back_name = ui->back_edit->placeholderText();
+    }
+    jsonObj["backname"] = back_name;
+    jsonObj["touid"] = _si->_uid;
+
+    QJsonDocument doc(jsonObj);
+    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+    emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_ADD_FRIEND_REQ,jsonData);
+
     this->hide();
     deleteLater();
 }

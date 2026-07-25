@@ -25,6 +25,11 @@ void UserManager::SetToken(QString token)
     _token = token;
 }
 
+int UserManager::GetUid()
+{
+    return _uid;
+}
+
 std::vector<std::shared_ptr<ApplyInfo> > UserManager::GetApplyList()
 {
     return _apply_list;

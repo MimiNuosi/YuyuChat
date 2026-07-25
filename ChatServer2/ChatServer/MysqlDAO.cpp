@@ -144,7 +144,6 @@ bool MysqlDAO::CheckPwd(const std::string& name, const std::string& pwd, UserInf
             origin_pwd = res->getString("password");
             std::cout << "Password: " << origin_pwd << std::endl;
 
-            // ����ȶ�
             if (pwd != origin_pwd) {
                 pool_->returnConnection(std::move(con));
                 return false;
@@ -159,7 +158,6 @@ bool MysqlDAO::CheckPwd(const std::string& name, const std::string& pwd, UserInf
             return true;
         }
         else {
-            // û�в�ѯ�����û�
             pool_->returnConnection(std::move(con));
             return false;
         }
@@ -249,4 +247,33 @@ std::shared_ptr<UserInfo> MysqlDAO::GetUser(std::string name)
         std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
         return nullptr;
     }
+}
+
+bool MysqlDAO::AddFriend(const int& from, const int& to) {
+    auto con = pool_->getConnection();
+    if (con == nullptr) {
+        return false;
+    }
+
+    Defer defer([this, &con]() {
+        pool_->returnConnection(std::move(con));
+        });
+
+    try {
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("INSERT INTO friend_apply (from_uid, to_uid) VALUES (?, ?)"
+        "ON DUPLICATE KEY UPDATE from_uid = from_uid,to_uid = to_uid "));
+        pstmt->setInt(1, from);
+        pstmt->setInt(2, to);
+        int updateCount = pstmt->executeUpdate();
+        if (updateCount < 0) {
+            return false;
+        }
+        std::cout << "Added friend, rows affected: " << updateCount << std::endl;
+        return true;
+    }
+    catch (sql::SQLException& e) {
+        std::cerr << "SQLException: " << e.what();
+        std::cerr << " (MySQL error code: " << e.getErrorCode();
+        std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
+		return false;
 }

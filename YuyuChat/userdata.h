@@ -23,7 +23,8 @@ public:
 class AddFriendApply {
 public:
     AddFriendApply(int from_uid, QString name, QString desc,
-                   QString icon, QString nick, int sex);
+                   QString icon, QString nick, int sex)
+        : _from_uid(from_uid), _name(name), _nick(nick), _desc(desc), _sex(sex), _icon(icon){}
     int _from_uid;
     QString _name;
     QString _desc;

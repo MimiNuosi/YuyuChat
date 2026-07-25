@@ -18,6 +18,7 @@ public:
     QString GetName();
     void SetUid(int uid);
     void SetToken(QString token);
+    int GetUid();
     std::vector<std::shared_ptr<ApplyInfo>> GetApplyList();
 private:
     UserManager();

@@ -429,7 +429,14 @@ inline constexpr AddFriendReq::Impl_::Impl_(
         desc_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        icon_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        nick_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         applyuid_{0},
+        sex_{0},
         touid_{0} {}
 
 template <typename>
@@ -562,15 +569,21 @@ const ::uint32_t
         0,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::message::AddFriendReq, _impl_._has_bits_),
-        7, // hasbit index offset
+        10, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::message::AddFriendReq, _impl_.applyuid_),
         PROTOBUF_FIELD_OFFSET(::message::AddFriendReq, _impl_.name_),
         PROTOBUF_FIELD_OFFSET(::message::AddFriendReq, _impl_.desc_),
+        PROTOBUF_FIELD_OFFSET(::message::AddFriendReq, _impl_.icon_),
+        PROTOBUF_FIELD_OFFSET(::message::AddFriendReq, _impl_.nick_),
+        PROTOBUF_FIELD_OFFSET(::message::AddFriendReq, _impl_.sex_),
         PROTOBUF_FIELD_OFFSET(::message::AddFriendReq, _impl_.touid_),
-        2,
+        4,
         0,
         1,
+        2,
         3,
+        5,
+        6,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::message::AddFriendRsp, _impl_._has_bits_),
         6, // hasbit index offset
@@ -670,16 +683,16 @@ static const ::_pbi::MigrationSchema
         {30, sizeof(::message::LoginReq)},
         {37, sizeof(::message::LoginRsp)},
         {46, sizeof(::message::AddFriendReq)},
-        {57, sizeof(::message::AddFriendRsp)},
-        {66, sizeof(::message::ReplyFriendReq)},
-        {75, sizeof(::message::ReplyFriendRsp)},
-        {84, sizeof(::message::SendChatMsgReq)},
-        {93, sizeof(::message::SendChatMsgRsp)},
-        {102, sizeof(::message::AuthFriendReq)},
-        {109, sizeof(::message::AuthFriendRsp)},
-        {118, sizeof(::message::TextChatMsgReq)},
-        {127, sizeof(::message::TextChatData)},
-        {134, sizeof(::message::TextChatMsgRsp)},
+        {63, sizeof(::message::AddFriendRsp)},
+        {72, sizeof(::message::ReplyFriendReq)},
+        {81, sizeof(::message::ReplyFriendRsp)},
+        {90, sizeof(::message::SendChatMsgReq)},
+        {99, sizeof(::message::SendChatMsgRsp)},
+        {108, sizeof(::message::AuthFriendReq)},
+        {115, sizeof(::message::AuthFriendRsp)},
+        {124, sizeof(::message::TextChatMsgReq)},
+        {133, sizeof(::message::TextChatData)},
+        {140, sizeof(::message::TextChatMsgRsp)},
 };
 static const ::_pb::Message* PROTOBUF_NONNULL const file_default_instances[] = {
     &::message::_GetVerifyReq_default_instance_._instance,
@@ -710,46 +723,47 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "\004port\030\003 \001(\t\022\r\n\005token\030\004 \001(\t\"&\n\010LoginReq\022\013"
     "\n\003uid\030\001 \001(\005\022\r\n\005token\030\002 \001(\t\"5\n\010LoginRsp\022\r"
     "\n\005error\030\001 \001(\005\022\013\n\003uid\030\002 \001(\005\022\r\n\005token\030\003 \001("
-    "\t\"K\n\014AddFriendReq\022\020\n\010applyuid\030\001 \001(\005\022\014\n\004n"
-    "ame\030\002 \001(\t\022\014\n\004desc\030\003 \001(\t\022\r\n\005touid\030\004 \001(\005\">"
-    "\n\014AddFriendRsp\022\r\n\005error\030\001 \001(\005\022\020\n\010applyui"
-    "d\030\002 \001(\005\022\r\n\005touid\030\003 \001(\005\"@\n\016ReplyFriendReq"
-    "\022\020\n\010replyuid\030\001 \001(\005\022\r\n\005agree\030\002 \001(\010\022\r\n\005tou"
-    "id\030\003 \001(\005\"@\n\016ReplyFriendRsp\022\r\n\005error\030\001 \001("
-    "\005\022\020\n\010replyuid\030\002 \001(\005\022\r\n\005touid\030\003 \001(\005\"=\n\016Se"
-    "ndChatMsgReq\022\017\n\007fromuid\030\001 \001(\005\022\r\n\005touid\030\002"
-    " \001(\005\022\013\n\003msg\030\003 \001(\t\"\?\n\016SendChatMsgRsp\022\r\n\005e"
-    "rror\030\001 \001(\005\022\017\n\007fromuid\030\002 \001(\005\022\r\n\005touid\030\003 \001"
-    "(\005\"/\n\rAuthFriendReq\022\017\n\007fromuid\030\001 \001(\005\022\r\n\005"
-    "token\030\002 \001(\t\">\n\rAuthFriendRsp\022\r\n\005error\030\001 "
-    "\001(\005\022\017\n\007fromuid\030\002 \001(\005\022\r\n\005touid\030\003 \001(\005\"Y\n\016T"
-    "extChatMsgReq\022\017\n\007fromuid\030\001 \001(\005\022\r\n\005touid\030"
-    "\002 \001(\005\022\'\n\010textmsgs\030\003 \003(\0132\025.message.TextCh"
-    "atData\"1\n\014TextChatData\022\r\n\005msgid\030\001 \001(\005\022\022\n"
-    "\nmsgcontext\030\002 \001(\t\"h\n\016TextChatMsgRsp\022\r\n\005e"
-    "rror\030\001 \001(\005\022\017\n\007fromuid\030\002 \001(\005\022\r\n\005touid\030\003 \001"
-    "(\005\022\'\n\010textmsgs\030\004 \003(\0132\025.message.TextChatD"
-    "ata2P\n\rVerifyService\022\?\n\rGetVerifyCode\022\025."
-    "message.GetVerifyReq\032\025.message.GetVerify"
-    "Rsp\"\0002\207\001\n\rStatusService\022G\n\rGetChatServer"
-    "\022\031.message.GetChatServerReq\032\031.message.Ge"
-    "tChatServerRsp\"\000\022-\n\005Login\022\021.message.Logi"
-    "nReq\032\021.message.LoginRsp2\323\002\n\013ChatService\022"
-    ";\n\tAddFriend\022\025.message.AddFriendReq\032\025.me"
-    "ssage.AddFriendRsp\"\000\022A\n\013ReplyFriend\022\027.me"
-    "ssage.ReplyFriendReq\032\027.message.ReplyFrie"
-    "ndRsp\"\000\022A\n\013SendChatMsg\022\027.message.SendCha"
-    "tMsgReq\032\027.message.SendChatMsgRsp\"\000\022>\n\nAu"
-    "thFriend\022\026.message.AuthFriendReq\032\026.messa"
-    "ge.AuthFriendRsp\"\000\022A\n\013TextChatMsg\022\027.mess"
-    "age.TextChatMsgReq\032\027.message.TextChatMsg"
-    "Rsp\"\000b\006proto3"
+    "\t\"t\n\014AddFriendReq\022\020\n\010applyuid\030\001 \001(\005\022\014\n\004n"
+    "ame\030\002 \001(\t\022\014\n\004desc\030\003 \001(\t\022\014\n\004icon\030\004 \001(\t\022\014\n"
+    "\004nick\030\005 \001(\t\022\013\n\003sex\030\006 \001(\005\022\r\n\005touid\030\007 \001(\005\""
+    ">\n\014AddFriendRsp\022\r\n\005error\030\001 \001(\005\022\020\n\010applyu"
+    "id\030\002 \001(\005\022\r\n\005touid\030\003 \001(\005\"@\n\016ReplyFriendRe"
+    "q\022\020\n\010replyuid\030\001 \001(\005\022\r\n\005agree\030\002 \001(\010\022\r\n\005to"
+    "uid\030\003 \001(\005\"@\n\016ReplyFriendRsp\022\r\n\005error\030\001 \001"
+    "(\005\022\020\n\010replyuid\030\002 \001(\005\022\r\n\005touid\030\003 \001(\005\"=\n\016S"
+    "endChatMsgReq\022\017\n\007fromuid\030\001 \001(\005\022\r\n\005touid\030"
+    "\002 \001(\005\022\013\n\003msg\030\003 \001(\t\"\?\n\016SendChatMsgRsp\022\r\n\005"
+    "error\030\001 \001(\005\022\017\n\007fromuid\030\002 \001(\005\022\r\n\005touid\030\003 "
+    "\001(\005\"/\n\rAuthFriendReq\022\017\n\007fromuid\030\001 \001(\005\022\r\n"
+    "\005token\030\002 \001(\t\">\n\rAuthFriendRsp\022\r\n\005error\030\001"
+    " \001(\005\022\017\n\007fromuid\030\002 \001(\005\022\r\n\005touid\030\003 \001(\005\"Y\n\016"
+    "TextChatMsgReq\022\017\n\007fromuid\030\001 \001(\005\022\r\n\005touid"
+    "\030\002 \001(\005\022\'\n\010textmsgs\030\003 \003(\0132\025.message.TextC"
+    "hatData\"1\n\014TextChatData\022\r\n\005msgid\030\001 \001(\005\022\022"
+    "\n\nmsgcontext\030\002 \001(\t\"h\n\016TextChatMsgRsp\022\r\n\005"
+    "error\030\001 \001(\005\022\017\n\007fromuid\030\002 \001(\005\022\r\n\005touid\030\003 "
+    "\001(\005\022\'\n\010textmsgs\030\004 \003(\0132\025.message.TextChat"
+    "Data2P\n\rVerifyService\022\?\n\rGetVerifyCode\022\025"
+    ".message.GetVerifyReq\032\025.message.GetVerif"
+    "yRsp\"\0002\207\001\n\rStatusService\022G\n\rGetChatServe"
+    "r\022\031.message.GetChatServerReq\032\031.message.G"
+    "etChatServerRsp\"\000\022-\n\005Login\022\021.message.Log"
+    "inReq\032\021.message.LoginRsp2\323\002\n\013ChatService"
+    "\022;\n\tAddFriend\022\025.message.AddFriendReq\032\025.m"
+    "essage.AddFriendRsp\"\000\022A\n\013ReplyFriend\022\027.m"
+    "essage.ReplyFriendReq\032\027.message.ReplyFri"
+    "endRsp\"\000\022A\n\013SendChatMsg\022\027.message.SendCh"
+    "atMsgReq\032\027.message.SendChatMsgRsp\"\000\022>\n\nA"
+    "uthFriend\022\026.message.AuthFriendReq\032\026.mess"
+    "age.AuthFriendRsp\"\000\022A\n\013TextChatMsg\022\027.mes"
+    "sage.TextChatMsgReq\032\027.message.TextChatMs"
+    "gRsp\"\000b\006proto3"
 };
 static ::absl::once_flag descriptor_table_message_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_message_2eproto = {
     false,
     false,
-    1653,
+    1694,
     descriptor_table_protodef_message_2eproto,
     "message.proto",
     &descriptor_table_message_2eproto_once,
@@ -2721,7 +2735,9 @@ PROTOBUF_NDEBUG_INLINE AddFriendReq::Impl_::Impl_(
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
         name_(arena, from.name_),
-        desc_(arena, from.desc_) {}
+        desc_(arena, from.desc_),
+        icon_(arena, from.icon_),
+        nick_(arena, from.nick_) {}
 
 AddFriendReq::AddFriendReq(
     ::google::protobuf::Arena* PROTOBUF_NULLABLE arena,
@@ -2751,7 +2767,9 @@ PROTOBUF_NDEBUG_INLINE AddFriendReq::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
         name_(arena),
-        desc_(arena) {}
+        desc_(arena),
+        icon_(arena),
+        nick_(arena) {}
 
 inline void AddFriendReq::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
@@ -2775,6 +2793,8 @@ inline void AddFriendReq::SharedDtor(MessageLite& self) {
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.name_.Destroy();
   this_._impl_.desc_.Destroy();
+  this_._impl_.icon_.Destroy();
+  this_._impl_.nick_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -2821,16 +2841,16 @@ AddFriendReq::GetClassData() const {
   return AddFriendReq_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 0, 37, 2>
+const ::_pbi::TcParseTable<3, 7, 0, 45, 2>
 AddFriendReq::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_._has_bits_),
     0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
+    7,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     AddFriendReq_class_data_.base(),
@@ -2840,13 +2860,10 @@ AddFriendReq::_table_ = {
     ::_pbi::TcParser::GetTable<::message::AddFriendReq>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // int32 touid = 4;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AddFriendReq, _impl_.touid_), 3>(),
-     {32, 3, 0,
-      PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.touid_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // int32 applyuid = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AddFriendReq, _impl_.applyuid_), 2>(),
-     {8, 2, 0,
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AddFriendReq, _impl_.applyuid_), 4>(),
+     {8, 4, 0,
       PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.applyuid_)}},
     // string name = 2;
     {::_pbi::TcParser::FastUS1,
@@ -2856,24 +2873,48 @@ AddFriendReq::_table_ = {
     {::_pbi::TcParser::FastUS1,
      {26, 1, 0,
       PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.desc_)}},
+    // string icon = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 2, 0,
+      PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.icon_)}},
+    // string nick = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 3, 0,
+      PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.nick_)}},
+    // int32 sex = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AddFriendReq, _impl_.sex_), 5>(),
+     {48, 5, 0,
+      PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.sex_)}},
+    // int32 touid = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(AddFriendReq, _impl_.touid_), 6>(),
+     {56, 6, 0,
+      PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.touid_)}},
   }}, {{
     65535, 65535
   }}, {{
     // int32 applyuid = 1;
-    {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.applyuid_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.applyuid_), _Internal::kHasBitsOffset + 4, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
     // string name = 2;
     {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.name_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string desc = 3;
     {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.desc_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // int32 touid = 4;
-    {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.touid_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    // string icon = 4;
+    {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.icon_), _Internal::kHasBitsOffset + 2, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string nick = 5;
+    {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.nick_), _Internal::kHasBitsOffset + 3, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int32 sex = 6;
+    {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.sex_), _Internal::kHasBitsOffset + 5, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    // int32 touid = 7;
+    {PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.touid_), _Internal::kHasBitsOffset + 6, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
   }},
   // no aux_entries
   {{
-    "\24\0\4\4\0\0\0\0"
+    "\24\0\4\4\4\4\0\0"
     "message.AddFriendReq"
     "name"
     "desc"
+    "icon"
+    "nick"
   }},
 };
 PROTOBUF_NOINLINE void AddFriendReq::Clear() {
@@ -2884,15 +2925,21 @@ PROTOBUF_NOINLINE void AddFriendReq::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       _impl_.name_.ClearNonDefaultToEmpty();
     }
     if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       _impl_.desc_.ClearNonDefaultToEmpty();
     }
+    if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      _impl_.icon_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      _impl_.nick_.ClearNonDefaultToEmpty();
+    }
   }
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000cU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x00000070U)) {
     ::memset(&_impl_.applyuid_, 0, static_cast<::size_t>(
         reinterpret_cast<char*>(&_impl_.touid_) -
         reinterpret_cast<char*>(&_impl_.applyuid_)) + sizeof(_impl_.touid_));
@@ -2921,7 +2968,7 @@ PROTOBUF_NOINLINE void AddFriendReq::Clear() {
 
   cached_has_bits = this_._impl_._has_bits_[0];
   // int32 applyuid = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000010U)) {
     if (this_._internal_applyuid() != 0) {
       target =
           ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<1>(
@@ -2949,11 +2996,40 @@ PROTOBUF_NOINLINE void AddFriendReq::Clear() {
     }
   }
 
-  // int32 touid = 4;
+  // string icon = 4;
+  if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+    if (!this_._internal_icon().empty()) {
+      const ::std::string& _s = this_._internal_icon();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.AddFriendReq.icon");
+      target = stream->WriteStringMaybeAliased(4, _s, target);
+    }
+  }
+
+  // string nick = 5;
   if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (!this_._internal_nick().empty()) {
+      const ::std::string& _s = this_._internal_nick();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.AddFriendReq.nick");
+      target = stream->WriteStringMaybeAliased(5, _s, target);
+    }
+  }
+
+  // int32 sex = 6;
+  if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+    if (this_._internal_sex() != 0) {
+      target =
+          ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<6>(
+              stream, this_._internal_sex(), target);
+    }
+  }
+
+  // int32 touid = 7;
+  if (CheckHasBit(cached_has_bits, 0x00000040U)) {
     if (this_._internal_touid() != 0) {
       target =
-          ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<4>(
+          ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<7>(
               stream, this_._internal_touid(), target);
     }
   }
@@ -2983,7 +3059,7 @@ PROTOBUF_NOINLINE void AddFriendReq::Clear() {
 
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     // string name = 2;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!this_._internal_name().empty()) {
@@ -2998,15 +3074,36 @@ PROTOBUF_NOINLINE void AddFriendReq::Clear() {
                                         this_._internal_desc());
       }
     }
-    // int32 applyuid = 1;
+    // string icon = 4;
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!this_._internal_icon().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_icon());
+      }
+    }
+    // string nick = 5;
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!this_._internal_nick().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_nick());
+      }
+    }
+    // int32 applyuid = 1;
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (this_._internal_applyuid() != 0) {
         total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
             this_._internal_applyuid());
       }
     }
-    // int32 touid = 4;
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    // int32 sex = 6;
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (this_._internal_sex() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+            this_._internal_sex());
+      }
+    }
+    // int32 touid = 7;
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (this_._internal_touid() != 0) {
         total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
             this_._internal_touid());
@@ -3031,7 +3128,7 @@ void AddFriendReq::MergeImpl(::google::protobuf::MessageLite& to_msg,
   (void)cached_has_bits;
 
   cached_has_bits = from._impl_._has_bits_[0];
-  if (BatchCheckHasBit(cached_has_bits, 0x0000000fU)) {
+  if (BatchCheckHasBit(cached_has_bits, 0x0000007fU)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
       if (!from._internal_name().empty()) {
         _this->_internal_set_name(from._internal_name());
@@ -3051,11 +3148,34 @@ void AddFriendReq::MergeImpl(::google::protobuf::MessageLite& to_msg,
       }
     }
     if (CheckHasBit(cached_has_bits, 0x00000004U)) {
+      if (!from._internal_icon().empty()) {
+        _this->_internal_set_icon(from._internal_icon());
+      } else {
+        if (_this->_impl_.icon_.IsDefault()) {
+          _this->_internal_set_icon("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+      if (!from._internal_nick().empty()) {
+        _this->_internal_set_nick(from._internal_nick());
+      } else {
+        if (_this->_impl_.nick_.IsDefault()) {
+          _this->_internal_set_nick("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000010U)) {
       if (from._internal_applyuid() != 0) {
         _this->_impl_.applyuid_ = from._impl_.applyuid_;
       }
     }
-    if (CheckHasBit(cached_has_bits, 0x00000008U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000020U)) {
+      if (from._internal_sex() != 0) {
+        _this->_impl_.sex_ = from._impl_.sex_;
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000040U)) {
       if (from._internal_touid() != 0) {
         _this->_impl_.touid_ = from._impl_.touid_;
       }
@@ -3082,6 +3202,8 @@ void AddFriendReq::InternalSwap(AddFriendReq* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.desc_, &other->_impl_.desc_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.icon_, &other->_impl_.icon_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.nick_, &other->_impl_.nick_, arena);
   ::google::protobuf::internal::memswap<
       PROTOBUF_FIELD_OFFSET(AddFriendReq, _impl_.touid_)
       + sizeof(AddFriendReq::_impl_.touid_)
