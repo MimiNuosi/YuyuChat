@@ -20,12 +20,17 @@ public:
     void SetToken(QString token);
     int GetUid();
     std::vector<std::shared_ptr<ApplyInfo>> GetApplyList();
+    bool AlreadyApply(int uid);
+    void AddApplyList(std::shared_ptr<ApplyInfo> apply);
+    void AddApplyList(QJsonArray apply);
+    void SetUserInfo(std::shared_ptr<UserInfo> user_info);
 private:
     UserManager();
     QString _name;
     QString _token;
     int _uid;
     std::vector<std::shared_ptr<ApplyInfo>> _apply_list;
+    std::shared_ptr<UserInfo> _user_info;
 };
 
 #endif // USERMANAGER_H

@@ -32,7 +32,11 @@ std::shared_ptr<UserInfo> MysqlManager::GetUser(std::string name)
 
 bool MysqlManager::AddFriend(const int& from, const int& to)
 {
-	return _dao.AddFriend(const int& from, const int& to);
+	return _dao.AddFriend(from,to);
+}
+
+bool MysqlManager::GetApplyList(int uid, std::vector<std::shared_ptr<ApplyInfo>>& applyList, int begin, int limit) {
+	return _dao.GetApplyList(uid, applyList, begin, limit);
 }
 
 MysqlManager::MysqlManager() {}

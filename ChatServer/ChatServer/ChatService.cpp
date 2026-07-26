@@ -63,6 +63,11 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
     return true;
 }
 
+bool GetFriendApplyInfo(int to_uid, std::vector<std::shared_ptr<ApplyInfo>>& list) {
+    //从mysql获取好友申请列表
+    return MysqlManager::GetInstance()->GetApplyList(to_uid, list, 0, 10);
+}
+
 bool isPureDigit(const std::string& str) {
     if (str.empty()) return false;
     for (char c : str) {
@@ -233,6 +238,25 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     rtvalue["desc"] = user_info->desc;
     rtvalue["sex"] = user_info->sex;
     rtvalue["icon"] = user_info->icon;
+
+	std::vector<std::shared_ptr<ApplyInfo>> apply_list;
+	bool apply_success = GetFriendApplyInfo(uid, apply_list);
+    if (!apply_success) {
+        std::cout << "[错误] 获取好友申请列表 (GetFriendApplyInfo) 失败" << std::endl;
+        rtvalue["error"] = ErrorCodes::UidInvalid;
+        return;
+	}
+    for (auto& apply : apply_list) {
+		Json::Value apply_json;
+        apply_json["applyuid"] = apply->_uid;
+        apply_json["name"] = apply->_name;
+        apply_json["desc"] = apply->_desc;
+        apply_json["icon"] = apply->_icon;
+        apply_json["nick"] = apply->_nick;
+        apply_json["sex"] = apply->_sex;
+		apply_json["status"] = apply->_status;
+		rtvalue["applylist"].append(apply_json);
+    }
 
     std::cout << "[追踪] 正在登记在线状态到 Redis..." << std::endl;
     auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");

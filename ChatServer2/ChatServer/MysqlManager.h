@@ -14,7 +14,7 @@ public:
     std::shared_ptr<UserInfo> GetUser(int uid);
     std::shared_ptr<UserInfo> GetUser(std::string name);
 	bool AddFriend(const int& from,const int& to);
-
+    bool GetApplyList(int uid, std::vector<std::shared_ptr<ApplyInfo>>& applyList, int begin, int limit);
 private:
     MysqlManager();
     MysqlDAO  _dao;

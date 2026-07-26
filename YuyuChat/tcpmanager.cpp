@@ -91,9 +91,19 @@ void TcpManager::initHandlers()
             return;
         }
 
-        UserManager::GetInstance()->SetUid(jsonObj["uid"].toInt());
-        UserManager::GetInstance()->SetName(jsonObj["name"].toString());
+        auto uid =jsonObj["uid"].toInt();
+        auto name =jsonObj["name"].toString();
+        auto nick =jsonObj["nick"].toString();
+        auto icon = jsonObj["icon"].toString();
+        auto sex= jsonObj["sex"].toInt();
+
+        auto user_info = std::make_shared<UserInfo>(uid,name,nick,icon,sex);
         UserManager::GetInstance()->SetToken(jsonObj["token"].toString());
+        UserManager::GetInstance()->SetUserInfo(user_info);
+
+        if(jsonObj.contains("apply_list")){
+            UserManager::GetInstance()->AddApplyList(jsonObj["apply_list"].toArray());
+        }
         emit sig_switch_chatdialog();
     });
 

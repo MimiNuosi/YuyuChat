@@ -40,6 +40,7 @@ public:
 	bool AddFriend(const int& from, const int& to);
     std::shared_ptr<UserInfo> GetUser(int uid);
     std::shared_ptr<UserInfo> GetUser(std::string name);
+	bool GetApplyList(int uid, std::vector<std::shared_ptr<ApplyInfo>>& applyList, int begin, int limit);
 private:
     std::unique_ptr<MySqlPool> pool_;
 };

@@ -2,6 +2,8 @@
 #include "ui_chatdialog.h"
 #include "chatuserwid.h"
 #include "loadingdialog.h"
+#include "tcpmanager.h"
+#include "usermanager.h"
 #include <QRandomGenerator>
 #include <QAction>
 #include <QMouseEvent>
@@ -74,12 +76,14 @@ ChatDialog::ChatDialog(QWidget *parent)
     connect(ui->side_contact_label, &StateWidget::clicked, this, &ChatDialog::slot_side_contact);
     connect(ui->search_edit, &QLineEdit::textChanged, this, &ChatDialog::slot_text_changed);
 
-    // 🌟 核心修复：安装到 qApp，监听整个程序的鼠标点击，而不是只听自己的
+    // 安装到 qApp，监听整个程序的鼠标点击，而不是只听自己的
     qApp->installEventFilter(this);
 
     // 设置聊天label选中状态
     ui->side_chat_label->SetSelected(true);
     ui->search_list->SetSearchEdit(ui->search_edit);
+
+    connect(TcpManager::GetInstance().get(),&TcpManager::sig_friend_apply,this,&ChatDialog::slot_apply_friend);
 }
 
 ChatDialog::~ChatDialog()
@@ -238,5 +242,18 @@ void ChatDialog::slot_text_changed(const QString &str)
     if (!str.isEmpty()) {
         ShowSearch(true);
     }
+}
+
+void ChatDialog::slot_apply_friend(std::shared_ptr<AddFriendApply> apply)
+{
+    bool b_already = UserManager::GetInstance()->AlreadyApply(apply->_from_uid);
+    if(b_already){
+        return;
+    }
+
+    UserManager::GetInstance()->AddApplyList(std::make_shared<ApplyInfo>(apply));
+    ui->side_contact_label->ShowRedPoint(true);
+    ui->con_user_list->ShowRedPoint(true);
+    ui->friend_apply_page->AddNewApply(apply);
 }
 
