@@ -2836,6 +2836,7 @@ class AuthFriendReq final : public ::google::protobuf::Message
   enum : int {
     kTokenFieldNumber = 2,
     kFromuidFieldNumber = 1,
+    kTouidFieldNumber = 3,
   };
   // string token = 2;
   void clear_token() ;
@@ -2862,11 +2863,21 @@ class AuthFriendReq final : public ::google::protobuf::Message
   void _internal_set_fromuid(::int32_t value);
 
   public:
+  // int32 touid = 3;
+  void clear_touid() ;
+  ::int32_t touid() const;
+  void set_touid(::int32_t value);
+
+  private:
+  ::int32_t _internal_touid() const;
+  void _internal_set_touid(::int32_t value);
+
+  public:
   // @@protoc_insertion_point(class_scope:message.AuthFriendReq)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
-  static const ::google::protobuf::internal::TcParseTable<1, 2,
+  static const ::google::protobuf::internal::TcParseTable<2, 3,
                                    0, 35,
                                    2>
       _table_;
@@ -2890,6 +2901,7 @@ class AuthFriendReq final : public ::google::protobuf::Message
     ::google::protobuf::internal::CachedSize _cached_size_;
     ::google::protobuf::internal::ArenaStringPtr token_;
     ::int32_t fromuid_;
+    ::int32_t touid_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -5420,6 +5432,31 @@ inline void AuthFriendReq::set_allocated_token(::std::string* PROTOBUF_NULLABLE 
     _impl_.token_.Set("", GetArena());
   }
   // @@protoc_insertion_point(field_set_allocated:message.AuthFriendReq.token)
+}
+
+// int32 touid = 3;
+inline void AuthFriendReq::clear_touid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.touid_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::int32_t AuthFriendReq::touid() const {
+  // @@protoc_insertion_point(field_get:message.AuthFriendReq.touid)
+  return _internal_touid();
+}
+inline void AuthFriendReq::set_touid(::int32_t value) {
+  _internal_set_touid(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:message.AuthFriendReq.touid)
+}
+inline ::int32_t AuthFriendReq::_internal_touid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.touid_;
+}
+inline void AuthFriendReq::_internal_set_touid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.touid_ = value;
 }
 
 // -------------------------------------------------------------------

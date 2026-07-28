@@ -79,11 +79,7 @@ struct AuthRsp {
             QString peer_nick, QString peer_icon, int peer_sex)
         :_uid(peer_uid),_name(peer_name),_nick(peer_nick),
         _icon(peer_icon),_sex(peer_sex),_thread_id(0)
-    {
-
-    }
-
-
+    {}
     void SetChatDatas(std::vector<std::shared_ptr<TextChatData>> _chat_datas);
     int _uid;
     QString _name;
@@ -96,25 +92,25 @@ struct AuthRsp {
 
 struct UserInfo {
     UserInfo(int uid, QString name, QString nick, QString icon, int sex, QString last_msg = "", QString desc=""):
-        _uid(uid),_name(name),_nick(nick),_icon(icon),_sex(sex),_desc(desc){}
+        _uid(uid),_name(name),_nick(nick),_icon(icon),_sex(sex),_desc(desc),_last_msg(last_msg){}
 
     UserInfo(std::shared_ptr<AuthInfo> auth):
         _uid(auth->_uid),_name(auth->_name),_nick(auth->_nick),
-        _icon(auth->_icon),_sex(auth->_sex),_desc(""){}
+        _icon(auth->_icon),_sex(auth->_sex),_desc(""),_last_msg(""){}
 
     UserInfo(int uid, QString name, QString icon):
         _uid(uid), _name(name), _icon(icon),_nick(_name),
-        _sex(0),_desc(""){
+        _sex(0),_desc(""),_last_msg(""){
 
     }
 
     UserInfo(std::shared_ptr<AuthRsp> auth):
         _uid(auth->_uid),_name(auth->_name),_nick(auth->_nick),
-        _icon(auth->_icon),_sex(auth->_sex),_desc(""){}
+        _icon(auth->_icon),_sex(auth->_sex),_desc(""),_last_msg(""){}
 
     UserInfo(std::shared_ptr<SearchInfo> search_info):
         _uid(search_info->_uid),_name(search_info->_name),_nick(search_info->_nick),
-        _icon(search_info->_icon),_sex(search_info->_sex), _desc(search_info->_desc){
+        _icon(search_info->_icon),_sex(search_info->_sex), _desc(search_info->_desc),_last_msg(""){
 
     }
 
@@ -124,6 +120,7 @@ struct UserInfo {
     QString _icon;
     int _sex;
     QString _desc;
+    QString _last_msg;
 };
 
 

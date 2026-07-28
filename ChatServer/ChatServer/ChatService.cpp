@@ -358,6 +358,81 @@ void AddFriendHandler(std::shared_ptr<Session> session, short msg_id, std::strin
 	ChatGrpcClient::GetInstance()->AddFriend(to_ip_value, add_req);
 }
 
+void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+
+    auto uid = root["fromuid"].asInt();
+    auto backname = root["backname"].asString();
+    auto touid = root["touid"].asInt();
+
+    Json::Value rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	auto user_info = std::make_shared<UserInfo>();
+	bool base_info_success = GetBaseInfo(USER_BASE_INFO + std::to_string(uid), uid, user_info);
+    if (base_info_success) {
+        rtvalue["uid"] = touid;
+		rtvalue["name"] = user_info->name;
+        rtvalue["nick"] = user_info->nick;
+        rtvalue["desc"] = user_info->desc;
+		rtvalue["sex"] = user_info->sex;
+		rtvalue["icon"] = user_info->icon;
+    }
+    else {
+        rtvalue["error"] = ErrorCodes::UidInvalid;
+		return;
+    }
+    // 无论下面逻辑如何 return，退出时必然发送回包
+    Defer defer([&session, &rtvalue]() {
+        std::string return_str = rtvalue.toStyledString();
+        session->Send(return_str, ID_AUTH_FRIEND_REQ);
+        });
+
+    MysqlManager::GetInstance()->AuthFriend(uid, touid,backname);
+
+    auto to_str = std::to_string(touid);
+    auto to_ip_key = USERIPPREFIX + to_str;
+    std::string to_ip_value = "";
+    bool b_ip = RedisManager::GetInstance()->Get(to_ip_key, to_ip_value);
+    if (!b_ip) {
+        return;
+    }
+    auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
+	//在同一台服务器（内存中）上，直接发送通知
+    if (server_name == to_ip_value) {
+        auto session = UserManager::GetInstance()->GetSession(touid);
+        if (session) {
+            Json::Value  notify;
+            notify["error"] = ErrorCodes::Success;
+            notify["applyuid"] = uid;
+            notify["desc"] = "";
+            std::string base_key = USER_BASE_INFO + std::to_string(uid);
+            auto user_info = std::make_shared<UserInfo>();
+            bool b_info = GetBaseInfo(base_key, uid, user_info);
+            if (b_info) {
+                notify["name"] = user_info->name;
+                notify["nick"] = user_info->nick;
+                notify["icon"] = user_info->icon;
+                notify["sex"] = user_info->sex;
+            }
+            else {
+                notify["error"] = ErrorCodes::UidInvalid;
+            }
+            std::string return_str = notify.toStyledString();
+            session->Send(return_str, ID_NOTIFY_AUTH_FRIEND_REQ);
+        }
+        return;
+    }
+    
+    AuthFriendReq auth_req;
+    auth_req.set_fromuid(uid);
+    auth_req.set_touid(touid);
+
+    ChatGrpcClient::GetInstance()->AuthFriend(to_ip_value, auth_req);
+}
+
+REGISTER_CALL_BACK(ID_AUTH_FRIEND_REQ, AuthFriendHandler)
 REGISTER_CALL_BACK(ID_ADD_FRIEND_REQ, AddFriendHandler)
 REGISTER_CALL_BACK(ID_SEARCH_USER_REQ, ChatSearchHandler);
 REGISTER_CALL_BACK(MSG_CHAT_LOGIN, ChatLoginHandler);

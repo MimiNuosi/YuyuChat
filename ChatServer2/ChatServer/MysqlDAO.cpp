@@ -23,19 +23,12 @@ int MysqlDAO::RegUser(const std::string& name, const std::string& email, const s
         if (con == nullptr) {
             return false;
         }
-        // ׼�����ô洢����
         std::unique_ptr < sql::PreparedStatement > stmt(con->_con->prepareStatement("CALL reg_user(?,?,?,@result)"));
-        // �����������
         stmt->setString(1, name);
         stmt->setString(2, email);
         stmt->setString(3, pwd);
 
-        // ����PreparedStatement��ֱ��֧��ע�����������������Ҫʹ�ûỰ������������������ȡ���������ֵ
-
-          // ִ�д洢����
         stmt->execute();
-        // ����洢���������˻Ự��������������ʽ��ȡ���������ֵ�������������ִ��SELECT��ѯ����ȡ����
-       // ���磬����洢����������һ���Ự����@result���洢������������������ȡ��
         std::unique_ptr<sql::Statement> stmtResult(con->_con->createStatement());
         std::unique_ptr<sql::ResultSet> res(stmtResult->executeQuery("SELECT @result AS result"));
         if (res->next()) {
@@ -64,16 +57,12 @@ bool MysqlDAO::CheckEmail(const std::string& name, const std::string& email) {
             return false;
         }
 
-        // ׼����ѯ���
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("SELECT email FROM user WHERE name = ?"));
 
-        // �󶨲���
         pstmt->setString(1, name);
 
-        // ִ�в�ѯ
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
-        // ���������
         while (res->next()) {
             std::cout << "Check Email: " << res->getString("email") << std::endl;
             if (email != res->getString("email")) {
@@ -103,14 +92,11 @@ bool MysqlDAO::UpdatePwd(const std::string& name, const std::string& newpwd) {
             return false;
         }
 
-        // ׼����ѯ���
         std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("UPDATE user SET password = ? WHERE name = ?"));
 
-        // �󶨲���
         pstmt->setString(2, name);
         pstmt->setString(1, newpwd);
 
-        // ִ�и���
         int updateCount = pstmt->executeUpdate();
 
         std::cout << "Updated rows: " << updateCount << std::endl;
@@ -318,4 +304,60 @@ bool MysqlDAO::AddFriend(const int& from, const int& to) {
         std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
         return false;
     }
+}
+
+bool MysqlDAO::AuthFriend(const int& from, const int& to, std::string& backname) {
+    auto con = pool_->getConnection();
+    if (con == nullptr) {
+        return false;
+    }
+
+    Defer defer([this, &con]() {
+        pool_->returnConnection(std::move(con));
+        });
+
+    {
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("UPDATE friend_apply SET status = 1 "
+            "WHERE from_uid = ? AND to_uid = ?"));
+        //反过来的申请时from，验证时to
+        pstmt->setInt(1, to); // from id
+        pstmt->setInt(2, from);
+        // 执行更新
+        int rowAffected = pstmt->executeUpdate();
+        if (rowAffected < 0) {
+            return false;
+        }
+    }
+    {
+        // 插入认证方好友数据
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("INSERT IGNORE INTO friend(self_id, friend_id, back) "
+            "VALUES (?, ?, ?) "
+        ));
+        //反过来的申请时from，验证时to
+        pstmt->setInt(1, from); // from id
+        pstmt->setInt(2, to);
+        pstmt->setString(3, backname);
+        // 执行更新
+        int rowAffected = pstmt->executeUpdate();
+        if (rowAffected < 0) {
+            con->_con->rollback();
+            return false;
+        }
+
+        //插入申请方好友数据
+        std::unique_ptr<sql::PreparedStatement> pstmt2(con->_con->prepareStatement("INSERT IGNORE INTO friend(self_id, friend_id, back) "
+            "VALUES (?, ?, ?) "
+        ));
+        //反过来的申请时from，验证时to
+        pstmt2->setInt(1, to); // from id
+        pstmt2->setInt(2, from);
+        pstmt2->setString(3, "");
+        // 执行更新
+        int rowAffected2 = pstmt2->executeUpdate();
+        if (rowAffected2 < 0) {
+            con->_con->rollback();
+            return false;
+        }
+    }
+    return true;
 }

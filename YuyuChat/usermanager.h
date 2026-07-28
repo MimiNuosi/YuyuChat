@@ -24,13 +24,16 @@ public:
     void AddApplyList(std::shared_ptr<ApplyInfo> apply);
     void AddApplyList(QJsonArray apply);
     void SetUserInfo(std::shared_ptr<UserInfo> user_info);
+    bool CheckFriendById(int uid);
+    void AddFriend(std::shared_ptr<AuthRsp> auth_rsp);
+    void AddFriend(std::shared_ptr<AuthInfo> auth_info);
+    std::shared_ptr<UserInfo> GetFriendById(int uid);
 private:
     UserManager();
-    QString _name;
     QString _token;
-    int _uid;
     std::vector<std::shared_ptr<ApplyInfo>> _apply_list;
     std::shared_ptr<UserInfo> _user_info;
+    QMap<int,std::shared_ptr<UserInfo>> _friend_map;
 };
 
 #endif // USERMANAGER_H

@@ -24,7 +24,6 @@ public:
 private:
     Ui::AuthenFriend *ui;
     void resetLabels();
-
     //已经创建好的标签
     QMap<QString, QPushButton*> _add_labels;
     std::vector<QString> _add_label_keys;

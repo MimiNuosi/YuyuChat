@@ -39,4 +39,12 @@ bool MysqlManager::GetApplyList(int uid, std::vector<std::shared_ptr<ApplyInfo>>
 	return _dao.GetApplyList(uid, applyList, begin, limit);
 }
 
-MysqlManager::MysqlManager() {}
+bool MysqlManager::AuthFriend(const int& from, const int& to, std::string& backname)
+{
+    return _dao.AuthFriend(from, to, backname)
+}
+
+MysqlManager::MysqlManager() 
+{
+    
+}
