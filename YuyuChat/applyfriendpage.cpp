@@ -88,7 +88,8 @@ void ApplyFriendPage::loadApplyList()
         });
     }
 
-    // 模拟假数据，创建QListWidgetItem，并设置自定义的widget
+    // 模拟假数据已注释，仅使用服务器返回的真实数据
+    /* 假数据循环 -- 已禁用
     for(int i = 0; i < 13; i++){
         int randomValue = QRandomGenerator::global()->bounded(100); // 生成0到99之间的随机整数
         int str_i = randomValue%strs.size();
@@ -113,6 +114,7 @@ void ApplyFriendPage::loadApplyList()
             authFriend->show();
         });
     }
+    */
 }
 
 void ApplyFriendPage::slot_auth_rsp(std::shared_ptr<AuthRsp> auth_rsp)

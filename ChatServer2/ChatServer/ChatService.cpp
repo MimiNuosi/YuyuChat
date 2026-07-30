@@ -20,7 +20,9 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
     std::lock_guard<std::mutex> lock(g_users_mtx);
     std::string info_str = "";
     bool success = RedisManager::GetInstance()->Get(base_key, info_str);
-
+    if (userinfo == nullptr) {
+        userinfo = std::make_shared<UserInfo>();
+    }
     if (success) {
         std::cout << "[追踪] 命中 Redis 缓存" << std::endl;
         Json::Reader reader;
@@ -57,7 +59,6 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
         std::cout << "[追踪] MySQL 数据已回写至 Redis" << std::endl;
     }
 
-
     g_users[uid] = userinfo;
     std::cout << "[追踪] GetBaseInfo 执行完毕，成功返回" << std::endl;
     return true;
@@ -66,6 +67,10 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
 bool GetFriendApplyInfo(int to_uid, std::vector<std::shared_ptr<ApplyInfo>>& list) {
     //从mysql获取好友申请列表
     return MysqlManager::GetInstance()->GetApplyList(to_uid, list, 0, 10);
+}
+
+bool GetFriendList(int to_uid, std::vector<std::shared_ptr<UserInfo>>& friend_list) {
+	return MysqlManager::GetInstance()->GetFriendList(to_uid, friend_list);
 }
 
 bool isPureDigit(const std::string& str) {
@@ -238,6 +243,7 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     rtvalue["desc"] = user_info->desc;
     rtvalue["sex"] = user_info->sex;
     rtvalue["icon"] = user_info->icon;
+    rtvalue["applylist"] = Json::arrayValue;
 
 	std::vector<std::shared_ptr<ApplyInfo>> apply_list;
 	bool apply_success = GetFriendApplyInfo(uid, apply_list);
@@ -255,7 +261,23 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
         apply_json["nick"] = apply->_nick;
         apply_json["sex"] = apply->_sex;
 		apply_json["status"] = apply->_status;
-		rtvalue["applylist"].append(apply_json);
+		rtvalue["apply_list"].append(apply_json);
+    }
+
+    //获取好友列表
+    rtvalue["friendlist"] = Json::arrayValue;
+    std::vector<std::shared_ptr<UserInfo>> friend_list;
+    bool b_friend_list = GetFriendList(uid, friend_list);
+    for (auto& friend_ele : friend_list) {
+        Json::Value obj;
+        obj["name"] = friend_ele->name;
+        obj["uid"] = friend_ele->uid;
+        obj["icon"] = friend_ele->icon;
+        obj["nick"] = friend_ele->nick;
+        obj["sex"] = friend_ele->sex;
+        obj["desc"] = friend_ele->desc;
+        obj["back"] = friend_ele->back;
+        rtvalue["friend_list"].append(obj);
     }
 
     std::cout << "[追踪] 正在登记在线状态到 Redis..." << std::endl;
@@ -312,16 +334,21 @@ void AddFriendHandler(std::shared_ptr<Session> session, short msg_id, std::strin
 	auto touid = root["touid"].asInt();
 
     Json::Value rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
     // 无论下面逻辑如何 return，退出时必然发送回包
     Defer defer([&session, &rtvalue]() {
         std::string return_str = rtvalue.toStyledString();
-        session->Send(return_str, ID_ADD_FRIEND_REQ);
+        session->Send(return_str, ID_ADD_FRIEND_RSP);
         });
 
 	MysqlManager::GetInstance()->AddFriend(uid,touid);
 
+    auto base_key = USER_BASE_INFO + std::to_string(uid);
+    std::shared_ptr<UserInfo> apply_info = std::make_shared<UserInfo>();
+    bool b_info = GetBaseInfo(base_key, uid, apply_info);
 	auto to_str = std::to_string(touid);
 	auto to_ip_key = USERIPPREFIX + to_str;
+
 	std::string to_ip_value = "";
 	bool b_ip = RedisManager::GetInstance()->Get(to_ip_key, to_ip_value);
     if (!b_ip) {
@@ -329,20 +356,22 @@ void AddFriendHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     }
     auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
     if (server_name == to_ip_value) {
-		auto session = UserManager::GetInstance()->GetSession(touid);
-        if (session) {
+		auto target_session = UserManager::GetInstance()->GetSession(touid);
+        if (target_session) {
             Json::Value  notify;
             notify["error"] = ErrorCodes::Success;
             notify["applyuid"] = uid;
             notify["name"] = applyname;
             notify["desc"] = "";
+            if (b_info) {
+                notify["icon"] = apply_info->icon;
+				notify["sex"] = apply_info->sex;
+				notify["nick"] = apply_info->nick;
+            }
             std::string return_str = notify.toStyledString();
-            session->Send(return_str, ID_NOTIFY_ADD_FRIEND_REQ);
+            target_session->Send(return_str, ID_NOTIFY_ADD_FRIEND_REQ);
         }
     }
-	auto base_key = USER_BASE_INFO + std::to_string(uid);
-	std::shared_ptr<UserInfo> apply_info = nullptr;
-	bool b_info = GetBaseInfo(base_key, uid, apply_info);
 
     AddFriendReq add_req;
     add_req.set_applyuid(uid);
@@ -364,15 +393,15 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
     reader.parse(msg_data, root);
 
     auto uid = root["fromuid"].asInt();
-    auto backname = root["backname"].asString();
+    auto backname = root["back"].asString();
     auto touid = root["touid"].asInt();
 
     Json::Value rtvalue;
 	rtvalue["error"] = ErrorCodes::Success;
 	auto user_info = std::make_shared<UserInfo>();
-	bool base_info_success = GetBaseInfo(USER_BASE_INFO + std::to_string(uid), uid, user_info);
+	bool base_info_success = GetBaseInfo(USER_BASE_INFO + std::to_string(touid), touid, user_info);
     if (base_info_success) {
-        rtvalue["uid"] = touid;
+        rtvalue["applyuid"] = touid;
 		rtvalue["name"] = user_info->name;
         rtvalue["nick"] = user_info->nick;
         rtvalue["desc"] = user_info->desc;
@@ -386,7 +415,7 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
     // 无论下面逻辑如何 return，退出时必然发送回包
     Defer defer([&session, &rtvalue]() {
         std::string return_str = rtvalue.toStyledString();
-        session->Send(return_str, ID_AUTH_FRIEND_REQ);
+        session->Send(return_str, ID_AUTH_FRIEND_RSP);
         });
 
     MysqlManager::GetInstance()->AuthFriend(uid, touid,backname);
@@ -403,7 +432,7 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
     if (server_name == to_ip_value) {
         auto session = UserManager::GetInstance()->GetSession(touid);
         if (session) {
-            Json::Value  notify;
+            Json::Value notify;
             notify["error"] = ErrorCodes::Success;
             notify["applyuid"] = uid;
             notify["desc"] = "";

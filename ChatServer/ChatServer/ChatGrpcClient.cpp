@@ -20,7 +20,7 @@ ChatGrpcClient::ChatGrpcClient()
 		if (config[word]["Name"].empty()) {
 			continue;
 		}
-		_pools[config[word]["Name"]] = std::make_unique<RpcConnectionPool<ChatService>>(5, config[word]["Host"], config[word]["Port"]); 
+		_pools[config[word]["Name"]] = std::make_unique<RpcConnectionPool<ChatService>>(5, config[word]["Host"], config[word]["RPCPort"]); 
 	}
 }
 

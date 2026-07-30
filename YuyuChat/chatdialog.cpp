@@ -162,6 +162,7 @@ void ChatDialog::addChatUserList()
 
         auto *chat_user_wid = new ChatUserWid();
         auto user_info = std::make_shared<UserInfo>(0,names[name_i],names[name_i],heads[head_i],0,strs[str_i]);
+        chat_user_wid->SetInfo(user_info);
         QListWidgetItem *item = new QListWidgetItem;
         //qDebug()<<"chat_user_wid sizeHint is " << chat_user_wid->sizeHint();
         item->setSizeHint(chat_user_wid->sizeHint());

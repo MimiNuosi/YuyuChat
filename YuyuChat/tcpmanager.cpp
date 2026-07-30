@@ -134,26 +134,6 @@ void TcpManager::initHandlers()
         emit sig_user_search(search_info);
     });
 
-    _handlers.insert(ReqID::ID_ADD_FRIEND_REQ,[this](ReqID id,int len,QByteArray data){
-        Q_UNUSED(len);
-
-        qDebug()<<"handle id is "<< id <<" , data is "<< data;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
-
-        if(jsonDoc.isNull()){
-            qDebug()<< "Failed to created JsonDocument";
-            return;
-        }
-
-        QJsonObject jsonObj = jsonDoc.object();
-
-        int err = jsonObj["error"].toInt();
-        if(err != ErrorCodes::SUCCESS){
-            qDebug() << "Add User Failed, err is " << err ;
-            return;
-        }
-    });
-
     _handlers.insert(ReqID::ID_ADD_FRIEND_RSP,[this](ReqID id,int len,QByteArray data){
         Q_UNUSED(len);
 
@@ -169,7 +149,29 @@ void TcpManager::initHandlers()
 
         int err = jsonObj["error"].toInt();
         if(err != ErrorCodes::SUCCESS){
-            qDebug() << "Add User Failed, err is " << err ;
+            qDebug() << "Add Friend RSP Failed, err is " << err ;
+            return;
+        }
+
+        qDebug() << "Add Friend RSP Success" ;
+    });
+
+    _handlers.insert(ReqID::ID_NOTIFY_ADD_FRIEND_REQ,[this](ReqID id,int len,QByteArray data){
+        Q_UNUSED(len);
+
+        qDebug()<<"handle id is "<< id <<" , data is "<< data;
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        if(jsonDoc.isNull()){
+            qDebug()<< "Failed to created JsonDocument";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        int err = jsonObj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Notify Add Friend Error, err is " << err ;
             return;
         }
 
@@ -217,7 +219,7 @@ void TcpManager::initHandlers()
         emit sig_auth_rsp(rsp);
     });
 
-    _handlers.insert(ReqID::ID_AUTH_FRIEND_REQ,[this](ReqID id,int len,QByteArray data){
+    _handlers.insert(ReqID::ID_NOTIFY_AUTH_FRIEND_REQ,[this](ReqID id,int len,QByteArray data){
         Q_UNUSED(len);
 
         qDebug()<<"handle id is "<< id <<" , data is "<< data;

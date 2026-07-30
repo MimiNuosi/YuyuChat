@@ -64,10 +64,11 @@ Status ChatServiceImpl::AuthFriend(ServerContext* context, const AuthFriendReq* 
     //在内存中则直接发送通知对方
     Json::Value  rtvalue;
     rtvalue["error"] = ErrorCodes::Success;
-	rtvalue["fromuid"] = request->fromuid();
+	rtvalue["applyuid"] = request->fromuid();
 	rtvalue["touid"] = request->touid(); 
 	auto userinfo = std::make_shared<UserInfo>();
-	bool ret = GetBaseInfo("user_base_info", fromuid, userinfo);
+    std::string base_key = USER_BASE_INFO + std::to_string(fromuid);
+	bool ret = GetBaseInfo(base_key, fromuid, userinfo);
     if (ret) {
 		rtvalue["name"] = userinfo->name;
 		rtvalue["desc"] = userinfo->desc;
@@ -82,7 +83,7 @@ Status ChatServiceImpl::AuthFriend(ServerContext* context, const AuthFriendReq* 
 
     std::string return_str = rtvalue.toStyledString();
 
-    session->Send(return_str, ID_NOTIFY_ADD_FRIEND_REQ);
+    session->Send(return_str, ID_NOTIFY_AUTH_FRIEND_REQ);
 
 	return Status::OK;
 };
@@ -95,7 +96,9 @@ bool ChatServiceImpl::GetBaseInfo(std::string base_key, int uid, std::shared_ptr
     std::cout << "[追踪] GetBaseInfo 开始执行, UID: " << uid << std::endl;
     std::string info_str = "";
     bool success = RedisManager::GetInstance()->Get(base_key, info_str);
-
+    if (userinfo == nullptr) {
+        userinfo = std::make_shared<UserInfo>();
+    }
     if (success) {
         std::cout << "[追踪] 命中 Redis 缓存" << std::endl;
         Json::Reader reader;
@@ -131,7 +134,6 @@ bool ChatServiceImpl::GetBaseInfo(std::string base_key, int uid, std::shared_ptr
         RedisManager::GetInstance()->Set(base_key, redis_root.toStyledString());
         std::cout << "[追踪] MySQL 数据已回写至 Redis" << std::endl;
     }
-
     std::cout << "[追踪] GetBaseInfo 执行完毕，成功返回" << std::endl;
     return true;
-};
+}
