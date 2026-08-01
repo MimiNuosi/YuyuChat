@@ -50,6 +50,19 @@ void ChatView::appendChatItem(QWidget *item)
     isAppended = true; // 标记刚刚追加了新消息
 }
 
+void ChatView::removeAllItem()
+{
+    QVBoxLayout *layout = qobject_cast<QVBoxLayout *>(m_pScrollArea->widget()->layout());
+    int count = layout->count();
+    for (int i = 0; i < count - 1; ++i) {
+        QLayoutItem *item = layout->takeAt(0);
+        if (QWidget *widget = item->widget()) {
+            delete widget;
+        }
+        delete item;
+    }
+}
+
 bool ChatView::eventFilter(QObject *o, QEvent *e)
 {
     if(e->type() == QEvent::Enter && o == m_pScrollArea) {

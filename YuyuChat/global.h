@@ -21,6 +21,8 @@ extern std::function<QString(QString)> xorString;
 
 extern QString gate_url_prefix;
 
+const int CHAT_COUNT_PER_PAGE = 13;
+
 enum ReqID{
     ID_GER_VERIFY_CODE = 1001,
     ID_REG_USER = 1002,
@@ -137,6 +139,19 @@ inline std::vector<QString> names = {
     "nodejs",
     "python",
     "rust"
+};
+
+//聊天形式，私聊和群聊
+enum class ChatFormType {
+    PRIVATE = 0,
+    GROUP = 1
+};
+
+//聊天消息类型，文本，图片，文件等
+enum class ChatMsgType {
+    TEXT = 0,
+    PIC = 1,
+    FILE = 2
 };
 
 

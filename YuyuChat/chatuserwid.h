@@ -19,6 +19,8 @@ public:
 
     void SetInfo(std::shared_ptr<UserInfo> user_info);
 
+    std::shared_ptr<UserInfo> GetUserInfo();
+    void UpdateLastMsg(std::vector<std::shared_ptr<TextChatData>>);
 private:
     Ui::ChatUserWid *ui;
     std::shared_ptr<UserInfo> _user_info;

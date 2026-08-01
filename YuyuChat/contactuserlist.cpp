@@ -69,22 +69,17 @@ void ContactUserList::addContactUserList()
     this->setItemWidget(_groupitem, groupCon);
     _groupitem->setFlags(_groupitem->flags() & ~Qt::ItemIsSelectable);
 
-
-    // 创建QListWidgetItem，并设置自定义的widget
-    for(int i = 0; i < 13; i++){
-        int randomValue = QRandomGenerator::global()->bounded(100); // 生成0到99之间的随机整数
-        int str_i = randomValue%strs.size();
-        int head_i = randomValue%heads.size();
-        int name_i = randomValue%names.size();
-
-        auto *con_user_wid = new ConUserItem();
-        con_user_wid->SetInfo(0,names[name_i], heads[head_i]);
-        QListWidgetItem *item = new QListWidgetItem;
-        //qDebug()<<"chat_user_wid sizeHint is " << chat_user_wid->sizeHint();
+    auto con_list = UserManager::GetInstance()->GetConListPerPage();
+    for(auto& con_ele : con_list){
+        auto* con_user_wid = new ConUserItem();
+        con_user_wid->SetInfo(con_ele->_uid,con_ele->_name,con_ele->_icon);
+        QListWidgetItem* item = new QListWidgetItem();
         item->setSizeHint(con_user_wid->sizeHint());
         this->addItem(item);
         this->setItemWidget(item, con_user_wid);
     }
+    UserManager::GetInstance()->UpdateContactLoadedCount();
+
 }
 
 bool ContactUserList::eventFilter(QObject *watched, QEvent *event)
@@ -137,8 +132,10 @@ void ContactUserList::slot_item_clicked(QListWidgetItem *item)
     if(itemType == ListItemType::CONTACT_USER_ITEM){
         // 创建对话框，提示用户
         qDebug()<< "contact user item clicked ";
+        auto con_item = qobject_cast<ConUserItem*>(customItem);
+        auto user_info = con_item->GetInfo();
         //跳转到好友申请界面
-        emit sig_switch_friend_info_page();
+        emit sig_switch_friend_info_page(user_info);
         return;
     }
 }

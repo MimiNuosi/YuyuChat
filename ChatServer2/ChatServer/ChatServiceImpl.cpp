@@ -89,6 +89,36 @@ Status ChatServiceImpl::AuthFriend(ServerContext* context, const AuthFriendReq* 
 };
 
 Status ChatServiceImpl::TextChatMsg(ServerContext* context, const TextChatMsgReq* request, TextChatMsgRsp* response) {
+    auto touid = request->touid();
+    auto session = UserManager::GetInstance()->GetSession(touid);
+
+    Defer defer([request, response]() {
+        response->set_error(ErrorCodes::Success);
+        response->set_touid(request->touid());
+        });
+
+    //用户不在内存中则直接返回
+    if (session == nullptr) {
+        return Status::OK;
+    }
+
+    //在内存中则直接发送通知对方
+    Json::Value  rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+    rtvalue["applyuid"] = request->fromuid();
+    rtvalue["touid"] = request->touid();
+	Json::Value text_array;
+    for (const auto& text : request->textmsgs()) {
+		Json::Value element;
+		element["msgid"] = text.msgid();
+		element["msgcontext"] = text.msgcontext();
+        text_array.append(element);
+    }
+	rtvalue["text array"] = text_array;
+
+    std::string return_str = rtvalue.toStyledString();
+
+    session->Send(return_str, ID_NOTIFY_TEXT_CHAT_MSG_REQ);
 	return Status::OK;
 };
 

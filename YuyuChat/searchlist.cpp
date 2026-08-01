@@ -5,6 +5,7 @@
 #include "adduseritem.h"
 #include "findsuccessdialog.h"
 #include "findfaildialog.h"
+#include "usermanager.h"
 #include <QScrollBar>
 #include <QJsonDocument>
 
@@ -101,6 +102,16 @@ void SearchList::slot_user_search(std::shared_ptr<SearchInfo> si)
         _find_dlg = new FindFailDialog(this);
     }
     else{
+        auto self_uid = UserManager::GetInstance()->GetUid();
+        if(si->_uid == self_uid){
+            return;
+        }
+
+        bool exist = UserManager::GetInstance()->CheckFriendById(si->_uid);
+        if(exist){
+            emit sig_switch_chat_item(si);
+            return;
+        }
         _find_dlg = new FindSuccessDialog(this);
         FindSuccessDialog* success_dlg = dynamic_cast<FindSuccessDialog*>(_find_dlg);
         if (success_dlg) {

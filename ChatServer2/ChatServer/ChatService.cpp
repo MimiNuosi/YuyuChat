@@ -461,6 +461,59 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
     ChatGrpcClient::GetInstance()->AuthFriend(to_ip_value, auth_req);
 }
 
+void ChatTextHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+    auto uid = root["uid"].asInt();
+    auto touid = root["touid"].asInt();
+    Json::Value text_array = root["text_array"];
+
+    Json::Value rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+	rtvalue["fromuid"] = uid;
+	rtvalue["touid"] = touid;
+	rtvalue["text_array"] = text_array;
+    // 无论下面逻辑如何 return，退出时必然发送回包
+    Defer defer([&session, &rtvalue]() {
+        std::string return_str = rtvalue.toStyledString();
+        session->Send(return_str, ID_TEXT_CHAT_MSG_RSP);
+        });
+
+    auto to_str = std::to_string(touid);
+    auto to_ip_key = USERIPPREFIX + to_str;
+    std::string to_ip_value = "";
+    bool b_ip = RedisManager::GetInstance()->Get(to_ip_key, to_ip_value);
+    if (!b_ip) {
+        rtvalue["error"] = ErrorCodes::UidInvalid;
+        return;
+    }
+    
+    auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
+    //在同一台服务器（内存中）上，直接发送通知
+    if (server_name == to_ip_value) {
+        auto target_session = UserManager::GetInstance()->GetSession(touid);
+        if (target_session) {
+            std::string return_str = rtvalue.toStyledString();
+            target_session->Send(return_str, ID_NOTIFY_TEXT_CHAT_MSG_REQ);
+        }
+        return;
+    }
+
+    TextChatMsgReq chat_req;
+    chat_req.set_fromuid(uid);
+    chat_req.set_touid(touid);
+    for (const auto& text : text_array) {
+		auto content = text["content"].asString();
+		auto msg_id = text["msg_id"].asInt();
+		auto* text_msg = chat_req.add_textmsgs();
+		text_msg->set_msgcontext(content);
+		text_msg->set_msgid(msg_id);
+    }
+    ChatGrpcClient::GetInstance()->TextChatMsg(to_ip_value, chat_req,rtvalue);
+}
+
+REGISTER_CALL_BACK(ID_TEXT_CHAT_MSG_REQ, ChatTextHandler)
 REGISTER_CALL_BACK(ID_AUTH_FRIEND_REQ, AuthFriendHandler)
 REGISTER_CALL_BACK(ID_ADD_FRIEND_REQ, AddFriendHandler)
 REGISTER_CALL_BACK(ID_SEARCH_USER_REQ, ChatSearchHandler);

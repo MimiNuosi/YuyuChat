@@ -124,5 +124,33 @@ bool ChatGrpcClient::GetBaseInfo(std::string base_key, int uid, std::shared_ptr<
 
 TextChatMsgRsp ChatGrpcClient::TextChatMsg(std::string server_ip, const TextChatMsgReq& req, const Json::Value& rtvalue) {
 	TextChatMsgRsp rsp;
+	Defer defer([&req, &rsp]() {
+		rsp.set_fromuid(req.fromuid());
+		rsp.set_error(ErrorCodes::Success);
+		rsp.set_touid(req.touid());
+		for (const auto& text : req.textmsgs()) {
+			TextChatData* new_text = rsp.add_textmsgs();
+			new_text->set_msgid(text.msgid());
+			new_text->set_msgcontext(text.msgcontext());
+		}
+		});
+
+	auto pool = _pools.find(server_ip);
+	if (pool == _pools.end()) {
+		return rsp;
+	}
+
+	auto stub = pool->second->getConnection();
+	ClientContext context;
+	Status status = stub->TextChatMsg(&context, req, &rsp);
+	Defer defer2([&stub, this, &pool]() {
+		pool->second->returnConnection(std::move(stub));
+		});
+
+	if (!status.ok()) {
+		rsp.set_error(ErrorCodes::RPCFailed);
+		std::cout << "TextChatMsg failed: " << status.error_message() << std::endl;
+	}
+	return rsp;
 	return rsp;
 };

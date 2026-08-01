@@ -7,6 +7,8 @@
 #include "textbubble.h"
 #include "picturebubble.h"
 #include "chatview.h"
+#include "usermanager.h"
+#include "tcpmanager.h"
 ChatPage::ChatPage(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::ChatPage)
@@ -19,6 +21,49 @@ ChatPage::~ChatPage()
     delete ui;
 }
 
+void ChatPage::SetUserInfo(std::shared_ptr<UserInfo> user_info)
+{
+    _user_info = user_info;
+    ui->title_label->setText(user_info->_name);
+    ui->chat_data_list->removeAllItem();
+    for(auto& msg : user_info->_chat_msgs){
+        AppendChatMsg(msg);
+    }
+}
+
+void ChatPage::AppendChatMsg(std::shared_ptr<TextChatData> msg)
+{
+    auto self_info = UserManager::GetInstance()->GetUserInfo();
+    ChatRole role;
+    if (msg->_from_uid == self_info->_uid) {
+        role = ChatRole::Self;
+        ChatItemBase* pChatItem = new ChatItemBase(role);
+
+        pChatItem->setUserName(self_info->_name);
+        pChatItem->setUserIcon(QPixmap(self_info->_icon));
+        QWidget* pBubble = nullptr;
+        pBubble = new TextBubble(role, msg->_msg_content);
+
+        pChatItem->setWidget(pBubble);
+        ui->chat_data_list->appendChatItem(pChatItem);
+    }
+    else {
+        role = ChatRole::Other;
+        ChatItemBase* pChatItem = new ChatItemBase(role);
+        auto friend_info = UserManager::GetInstance()->GetFriendById(msg->_from_uid);
+        if (friend_info == nullptr) {
+            return;
+        }
+        pChatItem->setUserName(friend_info->_name);
+        pChatItem->setUserIcon(QPixmap(friend_info->_icon));
+        QWidget* pBubble = nullptr;
+        pBubble = new TextBubble(role, msg->_msg_content);
+        pChatItem->setWidget(pBubble);
+        ui->chat_data_list->appendChatItem(pChatItem);
+    }
+
+
+}
 void ChatPage::paintEvent(QPaintEvent *event)
 {
     QStyleOption opt;
@@ -29,12 +74,20 @@ void ChatPage::paintEvent(QPaintEvent *event)
 
 void ChatPage::on_send_button_clicked()
 {
+    if(_user_info == nullptr){
+        return;
+    }
+    auto user_info = UserManager::GetInstance()->GetUserInfo();
     auto pTextEdit = ui->chat_edit;
     ChatRole role = ChatRole::Self;
-    QString userName = QStringLiteral("恋恋风辰");
-    QString userIcon = ":/res/head_1.jpg";
+    QString userName = user_info->_name;
+    QString userIcon = user_info->_icon;
 
     const QVector<MsgInfo>& msgList = pTextEdit->getMsgList();
+    QJsonObject textObj;
+    QJsonArray textArray;
+    int txt_size = 0;
+
     for(int i=0; i<msgList.size(); ++i)
     {
         QString type = msgList[i].msgFlag;
@@ -44,7 +97,36 @@ void ChatPage::on_send_button_clicked()
         QWidget *pBubble = nullptr;
         if(type == "text")
         {
+            //生成唯一id
+            QUuid uuid = QUuid::createUuid();
+            //转为字符串
+            QString uuidString = uuid.toString();
+
             pBubble = new TextBubble(role, msgList[i].content);
+
+            if(txt_size +msgList[i].content.length() >1024){
+                textObj["fromuid"] = user_info->_uid;
+                textObj["touid"] = _user_info->_uid;
+                textObj["text_array"] = textArray;
+                QJsonDocument doc(textObj);
+                QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+                txt_size = 0;
+                textArray = QJsonArray();
+                textObj = QJsonObject();
+                emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_TEXT_CHAT_MSG_REQ,jsonData);
+            }
+            //将bubble和uid绑定，以后可以等网络返回消息后设置是否送达
+            //_bubble_map[uuidString] = pBubble;
+            txt_size += msgList[i].content.length();
+            QJsonObject obj;
+            QByteArray utf8Message = msgList[i].content.toUtf8();
+            obj["content"] = QString::fromUtf8(utf8Message);
+            obj["msgid"] = uuidString;
+            textArray.append(obj);
+            auto txt_msg = std::make_shared<TextChatData>(uuidString, obj["content"].toString(),
+                                                          user_info->_uid, _user_info->_uid);
+            emit sig_append_send_chat_msg(txt_msg);
         }
         else if(type == "image")
         {
@@ -59,5 +141,20 @@ void ChatPage::on_send_button_clicked()
             pChatItem->setWidget(pBubble);
             ui->chat_data_list->appendChatItem(pChatItem);
         }
+        if(pBubble != nullptr)
+        {
+            pChatItem->setWidget(pBubble);
+            ui->chat_data_list->appendChatItem(pChatItem);
+        }
     }
+    textObj["fromuid"] = user_info->_uid;
+    textObj["touid"] = _user_info->_uid;
+    textObj["text_array"] = textArray;
+    QJsonDocument doc(textObj);
+    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+    txt_size = 0;
+    textArray = QJsonArray();
+    textObj = QJsonObject();
+    emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_TEXT_CHAT_MSG_REQ,jsonData);
 }

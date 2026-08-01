@@ -48,6 +48,11 @@ void ConUserItem::SetInfo(int uid, QString name, QString icon)
     ui->user_name_label->setText(_info->_name);
 }
 
+std::shared_ptr<UserInfo> ConUserItem::GetInfo()
+{
+    return _info;
+}
+
 void ConUserItem::SetInfo(std::shared_ptr<AuthRsp> auth_rsp){
     _info = std::make_shared<UserInfo>(auth_rsp);
 

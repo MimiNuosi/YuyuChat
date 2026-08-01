@@ -104,6 +104,9 @@ void TcpManager::initHandlers()
         if(jsonObj.contains("apply_list")){
             UserManager::GetInstance()->AddApplyList(jsonObj["apply_list"].toArray());
         }
+        if(jsonObj.contains("friend_list")){
+            UserManager::GetInstance()->AddFriendList(jsonObj["friend_list"].toArray());
+        }
         emit sig_switch_chatdialog();
     });
 
@@ -234,7 +237,7 @@ void TcpManager::initHandlers()
 
         int err = jsonObj["error"].toInt();
         if(err != ErrorCodes::SUCCESS){
-            qDebug() << "Add User Failed, err is " << err ;
+            qDebug() << "auth User Failed, err is " << err ;
             return;
         }
 
@@ -248,6 +251,48 @@ void TcpManager::initHandlers()
             from_uid, name, nick,
             icon, sex);
         emit sig_add_auth_friend(apply_info);
+    });
+
+    _handlers.insert(ReqID::ID_TEXT_CHAT_MSG_RSP,[this](ReqID id,int len,QByteArray data){
+        Q_UNUSED(len);
+
+        qDebug()<<"handle id is "<< id <<" , data is "<< data;
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        if(jsonDoc.isNull()){
+            qDebug()<< "Failed to created JsonDocument";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        int err = jsonObj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Recvice Text Msg Failed, err is " << err ;
+            return;
+        }
+    });
+
+    _handlers.insert(ReqID::ID_NOTIFY_TEXT_CHAT_MSG_REQ,[this](ReqID id,int len,QByteArray data){
+        Q_UNUSED(len);
+
+        qDebug()<<"handle id is "<< id <<" , data is "<< data;
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        if(jsonDoc.isNull()){
+            qDebug()<< "Failed to created JsonDocument";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        int err = jsonObj["error"].toInt();
+        if(err != ErrorCodes::SUCCESS){
+            qDebug() << "Notify Recvice Text Msg Failed, err is " << err ;
+            return;
+        }
+        auto msg = std::make_shared<TextChatMsg>(jsonObj["fromuid"].toInt(),jsonObj["touid"].toInt(),jsonObj["text_array"].toArray());
+        emit sig_text_chat_msg(msg);
     });
 }
 
