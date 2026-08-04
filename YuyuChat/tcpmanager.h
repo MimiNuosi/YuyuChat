@@ -11,6 +11,7 @@ class TcpManager :public QObject,public Singleton<TcpManager>,public std::enable
     Q_OBJECT
 public:
     ~TcpManager();
+    void CloseConnection();
 private:
     friend class Singleton<TcpManager>;
     TcpManager();
@@ -37,6 +38,7 @@ signals:
     void sig_auth_rsp(std::shared_ptr<AuthRsp>);
     void sig_add_auth_friend(std::shared_ptr<AuthInfo>);
     void sig_text_chat_msg(std::shared_ptr<TextChatMsg>);
+    void sig_notify_offline();
 };
 
 #endif // TCPMANAGER_H

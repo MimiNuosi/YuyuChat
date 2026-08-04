@@ -187,6 +187,19 @@ void GetUserByName(const std::string& name, Json::Value& rtvalue) {
     }
 }
 
+void NotifyOffline(std::shared_ptr<Session> target_session,int uid) {
+    if (!target_session) return;
+    Json::Value  rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+    rtvalue["uid"] = uid;
+
+
+    std::string return_str = rtvalue.toStyledString();
+
+    target_session->Send(return_str, ID_NOTIFY_OFF_LINE_REQ);
+    return;
+}
+
 void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
     std::cout << "\n========== [聊天登录流程开始] ==========" << std::endl;
     Json::Reader reader;
@@ -223,6 +236,31 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
         return;
     }
     std::cout << "[追踪] Token 校验通过！" << std::endl;
+
+	auto lockKey = LOCK_PREFIX + uid_str;
+	auto identifier = RedisManager::GetInstance()->acquireLock(lockKey, LOCK_TIME_OUT, ACOUIRE_TIME_OUT);
+
+    Defer lockDefer([&]() {
+        if (!identifier.empty()) {
+            RedisManager::GetInstance()->releaseLock(lockKey, identifier);
+            std::cout << "[追踪] 已释放 Redis 分布式锁" << std::endl;
+        }
+		});
+
+    std::string uid_ip_key = "";
+	auto uid_ip_value = USERIPPREFIX + uid_str;
+	bool b_ip = RedisManager::GetInstance()->Get(uid_ip_key, uid_ip_value);
+    if (b_ip) {
+		auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
+        if (server_name == uid_ip_value) {
+			auto old_session = UserManager::GetInstance()->GetUserSession(uid);
+            if (old_session) {
+                NotifyOffline(old_session,uid);
+                //清除旧的连接
+                old_session->GetServer()->ClearSession(old_session->GetSessionId());
+            }
+        }
+    }
 
     rtvalue["error"] = ErrorCodes::Success;
     std::string base_key = USER_BASE_INFO + uid_str;

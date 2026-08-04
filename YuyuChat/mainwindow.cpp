@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "QMessageBox.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -13,12 +14,30 @@ MainWindow::MainWindow(QWidget *parent)
     connect(_login_dlg,&LoginDialog::switchRegister,this,&MainWindow::SlotSwitchReg);
     connect(_login_dlg, &LoginDialog::switchReset, this, &MainWindow::SlotSwitchReset);
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_switch_chatdialog, this, &MainWindow::SlotSwitchChat);
+    connect(TcpManager::GetInstance().get(),&TcpManager::sig_notify_offline,this,&MainWindow::SlotOffline);
     //emit TcpManager::GetInstance()->sig_switch_chatdialog();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::offlineLogin()
+{
+    _login_dlg = new LoginDialog(this);
+    _login_dlg->setWindowFlags(Qt::CustomizeWindowHint|Qt::FramelessWindowHint);
+    setCentralWidget(_login_dlg);
+
+    _chat_dlg->hide();
+    this->setMaximumSize(300,500);
+    this->setMinimumSize(300,500);
+    this->resize(300,500);
+    _login_dlg->show();
+    //连接登录界面注册信号
+    connect(_login_dlg, &LoginDialog::switchRegister, this, &MainWindow::SlotSwitchReg);
+    //连接登录界面忘记密码信号
+    connect(_login_dlg, &LoginDialog::switchReset, this, &MainWindow::SlotSwitchReset);
 }
 
 void MainWindow::SlotSwitchReg()
@@ -78,4 +97,11 @@ void MainWindow::SlotSwitchChat()
     _chat_dlg->show();
     this->setMinimumSize(QSize(1050,900));
     this->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+}
+
+void MainWindow::SlotOffline()
+{
+    QMessageBox::information(this, "下线提示", "同账号异地登录，该终端下线！");
+    TcpManager::GetInstance()->CloseConnection();
+    offlineLogin();
 }

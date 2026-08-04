@@ -27,12 +27,14 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
+    void offlineLogin();
 public slots:
     void SlotSwitchReg();
     void SlotSwitchLogin();
     void SlotSwitchReset();
     void SlotSwitchLogin2();
     void SlotSwitchChat();
+    void SlotOffline();
 private:
     Ui::MainWindow *ui;
     LoginDialog* _login_dlg;

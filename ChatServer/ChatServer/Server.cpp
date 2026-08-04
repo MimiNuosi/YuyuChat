@@ -14,13 +14,11 @@ Server::~Server()
 
 void Server::ClearSession(std::string session_id)
 {
+	std::lock_guard<std::mutex> lock(_mutex);
 	if (_sessions.find(session_id) != _sessions.end()) {
-		UserManager::GetInstance()->RemoveSession(_sessions[session_id]->GetUserId());
+		UserManager::GetInstance()->RemoveSession(_sessions[session_id]->GetUserId(), _sessions[session_id]->GetSessionId());
 	}
-	{
-		std::lock_guard<std::mutex> lock(_mutex);
-		_sessions.erase(session_id);
-	}
+	_sessions.erase(session_id);
 }
 
 void Server::StartAccept()

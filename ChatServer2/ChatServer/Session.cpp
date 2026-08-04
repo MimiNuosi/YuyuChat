@@ -1,10 +1,10 @@
 #include "Session.h"
 #include <iostream>
 #include <memory>
-
+#include "UserManager.h"
 
 Session::Session(boost::asio::io_context& ioc, Server* server) 
-	:_socket(ioc), _server(server), _recv_head_node(std::make_shared<MsgNode>(static_cast<short>(HEAD_TOTAL_LEN))) {
+	:_socket(ioc), _server(server), _recv_head_node(std::make_shared<MsgNode>(static_cast<short>(HEAD_TOTAL_LEN))), _user_uid(0) {
 	boost::uuids::uuid uuid = boost::uuids::random_generator()();
 	_session_id = boost::uuids::to_string(uuid);
 	_data = new char[MAX_LENGTH];
@@ -33,6 +33,48 @@ void Session::Send(const std::string msg, short msg_id)
 		[self](const boost::system::error_code& ec, std::size_t bytes_transferred) {
 			self->HandleWrite(ec);
 		});
+}
+
+void Session::SafeClearSession()
+{
+	Close();
+
+	if (_user_uid == 0) {
+		_server->ClearSession(_session_id);
+		return;
+	}
+
+	std::string uid_str = std::to_string(_user_uid);
+	std::string lock_key = LOCK_PREFIX + uid_str;
+
+	auto identifier = RedisManager::GetInstance()->acquireLock(lock_key, LOCK_TIME_OUT, ACOUIRE_TIME_OUT);
+
+	Defer lockDefer([&]() {
+		if (!identifier.empty()) {
+			RedisManager::GetInstance()->releaseLock(lock_key, identifier);
+		}
+		});
+
+	if (!identifier.empty()) {
+		UserManager::GetInstance()->RemoveSession(_user_uid, _session_id);
+		RedisManager::GetInstance()->releaseLock(lock_key, identifier);
+	}
+	else {
+		std::cerr << "Failed to acquire lock for user " << _user_uid << " during session cleanup." << std::endl;
+	}
+
+	std::string redis_session_id = "";
+	bool b_session = RedisManager::GetInstance()->Get(USER_SESSION_PREFIX + uid_str, redis_session_id);
+	if (!b_session) {
+		return;
+	}
+
+	if (redis_session_id != _session_id) {
+		return;
+	}
+
+	RedisManager::GetInstance()->Del(USER_SESSION_PREFIX + uid_str);
+	RedisManager::GetInstance()->Del(USERIPPREFIX + uid_str);
 }
 
 void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
@@ -107,7 +149,7 @@ void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
 	}
 	else {
 		std::cerr << "Read error: " << ec.message() << "\n";
-		_server->ClearSession(_session_id);
+		SafeClearSession();
 	}
 }
 
@@ -130,8 +172,6 @@ void Session::HandleWrite(const boost::system::error_code& ec)
 	}
 	else {
 		std::cerr << "Write error: " << ec.message() << "\n";
-		boost::system::error_code ec;
-		_socket.close(ec);
-		_server->ClearSession(_session_id);
+		SafeClearSession();
 	}
 }

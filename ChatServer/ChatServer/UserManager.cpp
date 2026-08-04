@@ -7,13 +7,27 @@ void UserManager::SetUserSession(int uid, std::shared_ptr<Session> session)
 	_user_sessions[uid] = session;
 }
 
-void UserManager::RemoveSession(int uid)
+std::shared_ptr<Session> UserManager::GetUserSession(int uid)
 {
-	auto uid_str = std::to_string(uid);
-	{
-		std::lock_guard<std::mutex> lock(_mutex);
-		_user_sessions.erase(uid); 
-	}
+    return _user_sessions[uid];
+}
+
+void UserManager::RemoveSession(int uid,std::string session_id)
+{
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        auto iter = _user_sessions.find(uid);
+        if (iter != _user_sessions.end()) {
+            return;
+        }
+
+        auto session_id_ = iter->second->GetSessionId();
+        //不相等说明是其他地方登录了
+        if (session_id_ != session_id) {
+            return;
+        }
+        _user_sessions.erase(uid);
+    }
 }
 
 std::shared_ptr<Session> UserManager::GetSession(int uid)

@@ -11,7 +11,8 @@ class UserManager :public Singleton<UserManager>
 public:
 	~UserManager() { _user_sessions.clear(); };
 	void SetUserSession(int uid, std::shared_ptr<Session> session);
-	void RemoveSession(int uid);
+	std::shared_ptr<Session> GetUserSession(int uid);
+	void RemoveSession(int uid, std::string session_id);
 	std::shared_ptr<Session> GetSession(int uid);
 private:
 	UserManager() {};

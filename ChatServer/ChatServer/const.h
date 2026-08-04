@@ -62,6 +62,9 @@ enum MSG_IDS {
 	ID_TEXT_CHAT_MSG_REQ = 1017,//文本聊天信息请求
 	ID_TEXT_CHAT_MSG_RSP = 1018,//文本聊天信息回复
 	ID_NOTIFY_TEXT_CHAT_MSG_REQ = 1019,//通知用户文本聊天信息
+	ID_NOTIFY_OFF_LINE_REQ = 1021, //通知用户下线
+	ID_HEART_BEAT_REQ = 1023,      //心跳请求
+	ID_HEARTBEAT_RSP = 1024,       //心跳回复
 };
 
 class Defer {
@@ -79,3 +82,9 @@ constexpr const char* USERIPPREFIX = "uip_";
 constexpr const char* IPCOUNTPREFIX = "ipcount_";
 constexpr const char* USER_BASE_INFO = "ubaseinfo_";
 constexpr const char* LOGIN_COUNT = "logincount";
+constexpr const char* LOCK_PREFIX = "lock_";
+constexpr const char* USER_SESSION_PREFIX = "usession_";
+//分布式锁的持有时间
+constexpr const int LOCK_TIME_OUT = 10;
+//分布式锁的重试时间
+constexpr const int ACOUIRE_TIME_OUT = 5;

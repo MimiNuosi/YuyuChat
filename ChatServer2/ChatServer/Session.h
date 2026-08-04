@@ -15,6 +15,7 @@
 #include "MsgNode.h"
 #include "const.h"
 #include "LogicSystem.h"
+#include "RedisManager.h"
 
 using boost::asio::ip::tcp;
 
@@ -34,11 +35,21 @@ public:
 	int GetUserId() {
 		return _user_uid;
 	}
+	Server* GetServer() {
+		return _server;
+	}
+	void Close() {
+		boost::system::error_code ec;
+		_socket.close(ec);
+		if (ec) {
+			std::cerr << "Close socket error: " << ec.message() << std::endl;
+		}
+	}
 	void Start();
-
 	void Send(const std::string msg, short msg_id);
 
 private:
+	void SafeClearSession();
 
 	void HandleRead(const boost::system::error_code& ec, std::size_t bt);
 
