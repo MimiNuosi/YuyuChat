@@ -29,7 +29,7 @@ public:
     void Close();
 	std::string acquireLock(const std::string& lockName, int lockTimeout, int acquireTimeout);
 	bool releaseLock(const std::string& lockName, const std::string& identifier);
-
+	void DecreaseLoginCount(const std::string& serverName);
 private:
     RedisManager();
 

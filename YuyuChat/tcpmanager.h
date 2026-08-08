@@ -6,6 +6,7 @@
 #include "global.h"
 #include "singleton.h"
 #include "userdata.h"
+#include <QTimer>
 class TcpManager :public QObject,public Singleton<TcpManager>,public std::enable_shared_from_this<TcpManager>
 {
     Q_OBJECT
@@ -25,6 +26,7 @@ private:
     quint16 _message_id;
     quint16 _message_len;
     QMap<ReqID,std::function<void(ReqID id,int len,QByteArray data)>> _handlers;
+    QTimer* _heart_timer;
 public slots:
     void slot_tcp_connect(ServerInfo);
     void slot_send_data(ReqID id,QByteArray data);
@@ -39,6 +41,7 @@ signals:
     void sig_add_auth_friend(std::shared_ptr<AuthInfo>);
     void sig_text_chat_msg(std::shared_ptr<TextChatMsg>);
     void sig_notify_offline();
+    void sig_connection_close();
 };
 
 #endif // TCPMANAGER_H

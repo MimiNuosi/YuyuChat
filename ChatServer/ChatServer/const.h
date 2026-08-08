@@ -87,4 +87,6 @@ constexpr const char* USER_SESSION_PREFIX = "usession_";
 //分布式锁的持有时间
 constexpr const int LOCK_TIME_OUT = 10;
 //分布式锁的重试时间
-constexpr const int ACOUIRE_TIME_OUT = 5;
+constexpr const int ACQUIRE_TIME_OUT = 5;
+//心跳阈值（秒）
+constexpr const int HEART_BEAT_THRESHOLD = 60;

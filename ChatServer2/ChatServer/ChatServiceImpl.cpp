@@ -167,3 +167,31 @@ bool ChatServiceImpl::GetBaseInfo(std::string base_key, int uid, std::shared_ptr
     std::cout << "[追踪] GetBaseInfo 执行完毕，成功返回" << std::endl;
     return true;
 }
+
+Status ChatServiceImpl::KickUser(ServerContext* context, const KickUserReq* request, KickUserRsp* response)
+{
+	auto uid = request->uid();
+	auto session = UserManager::GetInstance()->GetSession(uid);
+
+    Defer defer([request, response]() {
+        response->set_error(ErrorCodes::Success);
+        response->set_uid(request->uid());
+		});
+
+	//用户不在内存中则直接返回
+    if (session == nullptr) {
+        return Status::OK;
+    }
+
+	//在内存中则直接发送通知对方
+    session->Offline(uid);
+
+	_p_server->ClearSession(session->GetSessionId());
+
+    return Status::OK;
+}
+
+void ChatServiceImpl::RegisterServer(std::shared_ptr<Server> pServer)
+{
+    _p_server = pServer;
+}

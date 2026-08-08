@@ -1,5 +1,6 @@
 #include "RedisManager.h"
 #include "ConfigManager.h"
+#include "DistLock.h"
 
 RedisManager::RedisManager() {
     try {
@@ -55,6 +56,34 @@ void RedisManager::Close() {
     if (_redis) {
         _redis.reset();
     }
+}
+
+std::string RedisManager::acquireLock(const std::string& lockName, int lockTimeout, int acquireTimeout)
+{
+    if (!_redis) { 
+        std::cout << "Redis connect is null" << std::endl; 
+        return "";
+    }
+    try {
+		return DistLock::GetInstance()->acquireLock(_redis.get(), lockName, lockTimeout, acquireTimeout);
+    }
+    catch (const sw::redis::Error& e) {
+        std::cout << "Redis Get Error: " << e.what() << std::endl;
+        return "";
+    }
+}
+
+bool RedisManager::releaseLock(const std::string& lockName, const std::string& identifier)
+{
+    if (!_redis) { std::cout << "Redis connect is null" << std::endl; return false; }
+    try {
+        return DistLock::GetInstance()->releaseLock(_redis.get(), lockName, identifier);
+    }
+    catch (const sw::redis::Error& e) {
+        std::cout << "Redis Get Error: " << e.what() << std::endl;
+        return false;
+    }
+    return false;
 }
 
 bool RedisManager::Get(const std::string& key, std::string& value) {
@@ -161,6 +190,20 @@ bool RedisManager::Del(const std::string& key) {
         return true;
     }
     catch (const sw::redis::Error& e) { return false; }
+}
+
+bool RedisManager::HDel(const std::string& key, const std::string& hkey) {
+    // 1. 检查底层 redis 对象是否为空
+    if (!_redis) return false;
+    try {
+        // 2. 调用 redis-plus-plus 的 hdel 接口删除指定的 field (hkey)
+        _redis->hdel(key, hkey);
+        return true;
+    }
+    catch (const sw::redis::Error& e) {
+        // 3. 捕获 sw::redis::Error 异常并返回 false
+        return false;
+    }
 }
 
 bool RedisManager::ExistsKey(const std::string& key) {

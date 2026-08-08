@@ -35,6 +35,16 @@ StatusServiceImpl::StatusServiceImpl() : _server_index(0) {
 
 ChatServer StatusServiceImpl::getChatServer() {
     std::lock_guard<std::mutex> guard(_server_mtx);
+
+    auto lock_key = LOGIN_COUNT;
+    auto identifier = RedisManager::GetInstance()->acquireLock(lock_key, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
+
+    Defer defer([&]() {
+        if (!identifier.empty()) {
+            RedisManager::GetInstance()->releaseLock(lock_key, identifier);
+        }
+		});
+
     if (_servers.empty()) {
         std::cerr << "[Error] _servers is empty! Please check config.ini" << std::endl;
         ChatServer empty_server;

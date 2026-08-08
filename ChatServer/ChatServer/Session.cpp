@@ -2,6 +2,7 @@
 #include <iostream>
 #include <memory>
 #include "UserManager.h"
+#include "ConfigManager.h"
 
 Session::Session(boost::asio::io_context& ioc, Server* server) 
 	:_socket(ioc), _server(server), _recv_head_node(std::make_shared<MsgNode>(static_cast<short>(HEAD_TOTAL_LEN))), _user_uid(0) {
@@ -10,8 +11,13 @@ Session::Session(boost::asio::io_context& ioc, Server* server)
 	_data = new char[MAX_LENGTH];
 }
 
+Session::~Session()
+{
+}
+
 void Session::Start()
 {
+	UpdateHeartBeatTime();
 	auto self = shared_from_this();
 	memset(_data, 0, MAX_LENGTH);
 	_socket.async_read_some(boost::asio::buffer(_data, MAX_LENGTH),
@@ -35,9 +41,38 @@ void Session::Send(const std::string msg, short msg_id)
 		});
 }
 
+void Session::Offline(int uid)
+{
+	Json::Value  rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	rtvalue["uid"] = uid;
+
+
+	std::string return_str = rtvalue.toStyledString();
+
+	Send(return_str, ID_NOTIFY_OFF_LINE_REQ);
+	return;
+}
+
+bool Session::IsHeartBeatTimeout()
+{
+	return std::difftime(time(nullptr), _last_heart_beat_time.load()) > HEART_BEAT_THRESHOLD;
+}
+
+void Session::UpdateHeartBeatTime()
+{
+	_last_heart_beat_time.store(time(nullptr));
+	if (_server != nullptr) {
+		_server->UpdateHeartBeat(shared_from_this());
+	}
+}
+
 void Session::SafeClearSession()
 {
-	Close();
+	{
+		std::lock_guard<std::mutex> lock(_session_mutex);
+		Close();
+	}
 
 	if (_user_uid == 0) {
 		_server->ClearSession(_session_id);
@@ -47,39 +82,44 @@ void Session::SafeClearSession()
 	std::string uid_str = std::to_string(_user_uid);
 	std::string lock_key = LOCK_PREFIX + uid_str;
 
-	auto identifier = RedisManager::GetInstance()->acquireLock(lock_key, LOCK_TIME_OUT, ACOUIRE_TIME_OUT);
+	auto identifier = RedisManager::GetInstance()->acquireLock(lock_key, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
 
-	Defer lockDefer([&]() {
+	Defer lockDefer([this,lock_key, identifier]() {
+		_server->ClearSession(_session_id);
+		UserManager::GetInstance()->RemoveSession(_user_uid, _session_id);
 		if (!identifier.empty()) {
 			RedisManager::GetInstance()->releaseLock(lock_key, identifier);
 		}
 		});
 
-	if (!identifier.empty()) {
-		UserManager::GetInstance()->RemoveSession(_user_uid, _session_id);
-		RedisManager::GetInstance()->releaseLock(lock_key, identifier);
-	}
-	else {
+	if (identifier.empty()) {
 		std::cerr << "Failed to acquire lock for user " << _user_uid << " during session cleanup." << std::endl;
+		return;
 	}
 
 	std::string redis_session_id = "";
 	bool b_session = RedisManager::GetInstance()->Get(USER_SESSION_PREFIX + uid_str, redis_session_id);
-	if (!b_session) {
-		return;
-	}
-
-	if (redis_session_id != _session_id) {
+	if (!b_session || redis_session_id != _session_id) {
 		return;
 	}
 
 	RedisManager::GetInstance()->Del(USER_SESSION_PREFIX + uid_str);
 	RedisManager::GetInstance()->Del(USERIPPREFIX + uid_str);
+
+	auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
+	RedisManager::GetInstance()->DecreaseLoginCount(server_name);
 }
 
 void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
 {
 	if (!ec) {
+		if (!_server->CheckUidVaild(_session_id)) {
+			SafeClearSession();
+			return;
+		}
+
+		UpdateHeartBeatTime();
+
 		int copy_len = 0;
 		auto self = shared_from_this();
 		while (bt) {
@@ -160,8 +200,8 @@ void Session::HandleWrite(const boost::system::error_code& ec)
 		if (!_send_que.empty()) {
 			_send_que.pop();
 		}
-		if (!_send_que.empty()) {
-			_send_que.pop();
+		//必须再次判空，确认还有后续包需要发
+		if(!_send_que.empty()){
 			auto msg_node = _send_que.front();
 			auto self = shared_from_this();
 			boost::asio::async_write(_socket, boost::asio::buffer(msg_node->_data, msg_node->_total_len),

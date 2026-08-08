@@ -24,8 +24,11 @@ public:
     std::string HGet(const std::string& key, const std::string& hkey);
 
     bool Del(const std::string& key);
+    bool HDel(const std::string& key, const std::string& hkey);
     bool ExistsKey(const std::string& key);
     void Close();
+	std::string acquireLock(const std::string& lockName, int lockTimeout, int acquireTimeout);
+	bool releaseLock(const std::string& lockName, const std::string& identifier);
 
 private:
     RedisManager();

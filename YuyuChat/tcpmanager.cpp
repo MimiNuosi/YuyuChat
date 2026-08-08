@@ -11,7 +11,25 @@ void TcpManager::CloseConnection(){
 
 TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0)
 {
+    _heart_timer = new QTimer(this);
+    QObject::connect(_heart_timer, &QTimer::timeout, [&](){
+        // 构造心跳包的 JSON 数据并发送
+        auto user_info = UserManager::GetInstance()->GetUserInfo();
+        if (!user_info) {
+            return; // 还没登录就不发心跳
+        }
+
+        QJsonObject jsonObj;
+        jsonObj["uid"] = user_info->_uid;
+        QJsonDocument doc(jsonObj);
+        QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+        // 触发发送心跳请求
+        emit sig_send_data(ReqID::ID_HEART_BEAT_REQ, jsonData);
+    });
+
     QObject::connect(&_socket,&QTcpSocket::connected,[&](){
+        _heart_timer->start(10000);
         qDebug()<< "Connected to server" ;
         emit sig_con_success(true);
     });
@@ -59,11 +77,15 @@ TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(
     });
 
     QObject::connect(&_socket, &QTcpSocket::disconnected, [&]() {
+        _heart_timer->stop();
         qDebug() << "Disconnected from server.";
+        emit sig_connection_close();
     });
 
     QObject::connect(this, &TcpManager::sig_send_data, this, &TcpManager::slot_send_data);
     initHandlers();
+
+
 }
 
 void TcpManager::initHandlers()
@@ -330,7 +352,33 @@ void TcpManager::initHandlers()
         //断开连接
         //并且发送通知到界面
         emit sig_notify_offline();
+    });
 
+    _handlers.insert(ID_HEART_BEAT_REQ,[this](ReqID id, int len, QByteArray data){
+        Q_UNUSED(len);
+        qDebug() << "handle id is " << id << " data is " << data;
+        // 将QByteArray转换为QJsonDocument
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        // 检查转换是否成功
+        if (jsonDoc.isNull()) {
+            qDebug() << "Failed to create QJsonDocument.";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        if (!jsonObj.contains("error")) {
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "JSON Failed, err is Json Parse Err" << err;
+            return;
+        }
+
+        int err = jsonObj["error"].toInt();
+        if (err != ErrorCodes::SUCCESS) {
+            qDebug() << "Heart Beat Time Out, err is " << err;
+            return;
+        }
     });
 }
 

@@ -18,6 +18,14 @@ QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
 }
+
+enum UiState{
+    LOGIN_UI,
+    REGISTER_UI,
+    RESET_UI,
+    CHAT_UI,
+};
+
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -35,11 +43,13 @@ public slots:
     void SlotSwitchLogin2();
     void SlotSwitchChat();
     void SlotOffline();
+    void SlotConnectionClose();
 private:
     Ui::MainWindow *ui;
     LoginDialog* _login_dlg;
     RegisterDialog* _reg_dlg;
     ResetDialog* _reset_dlg;
     ChatDialog* _chat_dlg;
+    UiState _ui_state;
 };
 #endif // MAINWINDOW_H

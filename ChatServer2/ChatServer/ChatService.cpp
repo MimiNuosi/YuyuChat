@@ -237,31 +237,6 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     }
     std::cout << "[追踪] Token 校验通过！" << std::endl;
 
-	auto lockKey = LOCK_PREFIX + uid_str;
-	auto identifier = RedisManager::GetInstance()->acquireLock(lockKey, LOCK_TIME_OUT, ACOUIRE_TIME_OUT);
-
-    Defer lockDefer([&]() {
-        if (!identifier.empty()) {
-            RedisManager::GetInstance()->releaseLock(lockKey, identifier);
-            std::cout << "[追踪] 已释放 Redis 分布式锁" << std::endl;
-        }
-		});
-
-    std::string uid_ip_key = "";
-	auto uid_ip_value = USERIPPREFIX + uid_str;
-	bool b_ip = RedisManager::GetInstance()->Get(uid_ip_key, uid_ip_value);
-    if (b_ip) {
-		auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
-        if (server_name == uid_ip_value) {
-			auto old_session = UserManager::GetInstance()->GetUserSession(uid);
-            if (old_session) {
-                NotifyOffline(old_session,uid);
-                //清除旧的连接
-                old_session->GetServer()->ClearSession(old_session->GetSessionId());
-            }
-        }
-    }
-
     rtvalue["error"] = ErrorCodes::Success;
     std::string base_key = USER_BASE_INFO + uid_str;
     auto user_info = std::make_shared<UserInfo>();
@@ -283,23 +258,23 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     rtvalue["icon"] = user_info->icon;
     rtvalue["applylist"] = Json::arrayValue;
 
-	std::vector<std::shared_ptr<ApplyInfo>> apply_list;
-	bool apply_success = GetFriendApplyInfo(uid, apply_list);
+    std::vector<std::shared_ptr<ApplyInfo>> apply_list;
+    bool apply_success = GetFriendApplyInfo(uid, apply_list);
     if (!apply_success) {
         std::cout << "[错误] 获取好友申请列表 (GetFriendApplyInfo) 失败" << std::endl;
         rtvalue["error"] = ErrorCodes::UidInvalid;
         return;
-	}
+    }
     for (auto& apply : apply_list) {
-		Json::Value apply_json;
+        Json::Value apply_json;
         apply_json["applyuid"] = apply->_uid;
         apply_json["name"] = apply->_name;
         apply_json["desc"] = apply->_desc;
         apply_json["icon"] = apply->_icon;
         apply_json["nick"] = apply->_nick;
         apply_json["sex"] = apply->_sex;
-		apply_json["status"] = apply->_status;
-		rtvalue["apply_list"].append(apply_json);
+        apply_json["status"] = apply->_status;
+        rtvalue["apply_list"].append(apply_json);
     }
 
     //获取好友列表
@@ -316,6 +291,37 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
         obj["desc"] = friend_ele->desc;
         obj["back"] = friend_ele->back;
         rtvalue["friend_list"].append(obj);
+    }
+
+	auto lockKey = LOCK_PREFIX + uid_str;
+	auto identifier = RedisManager::GetInstance()->acquireLock(lockKey, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
+
+    if (identifier.empty()) {
+        std::cout << "[警告] 无法获取分布式锁，UID: " << uid << " 正在被其他线程处理" << std::endl;
+        rtvalue["error"] = ErrorCodes::UserExist; // 请替换为你系统里实际的“系统繁忙”错误码
+        return; // 直接 return，最上面的 defer 会帮你给客户端发回包
+    }
+
+    Defer lockDefer([lockKey, identifier]() {
+        if (!identifier.empty()) {
+            RedisManager::GetInstance()->releaseLock(lockKey, identifier);
+            std::cout << "[追踪] 已释放 Redis 分布式锁" << std::endl;
+        }
+		});
+
+    std::string uid_ip_key = "";
+	auto uid_ip_value = USERIPPREFIX + uid_str;
+	bool b_ip = RedisManager::GetInstance()->Get(uid_ip_key, uid_ip_value);
+    if (b_ip) {
+		auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
+        if (server_name == uid_ip_value) {
+			auto old_session = UserManager::GetInstance()->GetUserSession(uid);
+            if (old_session) {
+                NotifyOffline(old_session,uid);
+                //清除旧的连接
+                old_session->GetServer()->ClearSession(old_session->GetSessionId());
+            }
+        }
     }
 
     std::cout << "[追踪] 正在登记在线状态到 Redis..." << std::endl;
@@ -551,6 +557,20 @@ void ChatTextHandler(std::shared_ptr<Session> session, short msg_id, std::string
     ChatGrpcClient::GetInstance()->TextChatMsg(to_ip_value, chat_req,rtvalue);
 }
 
+void HeartBeatHandler(std::shared_ptr<Session> session, const short& msg_id, const std::string& msg_data) {
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+    auto uid = root["fromuid"].asInt();
+    std::cout << "receive heart beat msg, uid is " << uid << std::endl;
+    Json::Value rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+    Defer defer([&session, &rtvalue]() {
+        session->Send(rtvalue.toStyledString(), ID_TEXT_CHAT_MSG_RSP);
+        });
+}
+
+REGISTER_CALL_BACK(ID_HEART_BEAT_REQ, HeartBeatHandler)
 REGISTER_CALL_BACK(ID_TEXT_CHAT_MSG_REQ, ChatTextHandler)
 REGISTER_CALL_BACK(ID_AUTH_FRIEND_REQ, AuthFriendHandler)
 REGISTER_CALL_BACK(ID_ADD_FRIEND_REQ, AddFriendHandler)

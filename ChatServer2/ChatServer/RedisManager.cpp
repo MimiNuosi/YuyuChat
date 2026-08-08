@@ -86,6 +86,37 @@ bool RedisManager::releaseLock(const std::string& lockName, const std::string& i
     return false;
 }
 
+void RedisManager::DecreaseLoginCount(const std::string& serverName)
+{
+    auto lockKey = LOGIN_COUNT;
+	auto identifier = acquireLock(lockKey, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
+    Defer lockDefer([this, lockKey, identifier]() {
+        if (!identifier.empty()) {
+            releaseLock(lockKey, identifier);
+        }
+		});
+
+    if (identifier.empty()) {
+        std::cerr << "Failed to acquire lock for login count during DecreaseLoginCount." << std::endl;
+        return;
+    }
+    std::string countStr = HGet(LOGIN_COUNT, serverName);
+    int count = 0;
+    if (!countStr.empty()) {
+        try {
+            count = std::stoi(countStr);
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Failed to parse login count: " << e.what() << std::endl;
+            return;
+        }
+    }
+    if (count > 0) {
+        count--;
+        HSet(LOGIN_COUNT, serverName, std::to_string(count));
+	}
+}
+
 bool RedisManager::Get(const std::string& key, std::string& value) {
     if (!_redis) { std::cout << "Redis connect is null" << std::endl; return false; }
     try {

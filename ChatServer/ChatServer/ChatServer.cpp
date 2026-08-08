@@ -23,6 +23,12 @@ int main(void) {
         // 1. 启动时：将当前服务器的登录连接数归零
         RedisManager::GetInstance()->HSet(LOGIN_COUNT, server_name, "0");
 
+        Defer defer_cleanup([server_name]() {
+            std::cout << "[清理] 服务器退出，正在从 Redis 注销本节点..." << std::endl;
+            RedisManager::GetInstance()->HDel(LOGIN_COUNT, server_name);
+            RedisManager::GetInstance()->Close();
+            });
+
         // 2. 组装 gRPC 服务器地址并注册服务
         std::string server_address(config["SelfServer"]["Host"] + ":" + config["SelfServer"]["RPCPort"]);
         ChatServiceImpl service; // 实例化你的 RPC 服务
@@ -58,8 +64,6 @@ int main(void) {
         ioc.run();
 
         // 7. 优雅退出后的清理工作
-        RedisManager::GetInstance()->HDel(LOGIN_COUNT, server_name);
-        RedisManager::GetInstance()->Close();
         grpc_server_thread.join(); // 阻塞等待 gRPC 线程彻底安全结束
     }
     catch (const std::exception& e)

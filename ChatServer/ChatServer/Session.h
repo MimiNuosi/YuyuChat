@@ -23,6 +23,8 @@ class Session :public std::enable_shared_from_this<Session> {
 public:
 	Session(boost::asio::io_context& ioc, Server* server);
 
+	~Session();
+
 	tcp::socket& GetSocket() {
 		return _socket;
 	}
@@ -47,10 +49,11 @@ public:
 	}
 	void Start();
 	void Send(const std::string msg, short msg_id);
-
-private:
+	void Offline(int uid);
+	bool IsHeartBeatTimeout();
+	void UpdateHeartBeatTime();
 	void SafeClearSession();
-
+private:
 	void HandleRead(const boost::system::error_code& ec, std::size_t bt);
 
 	void HandleWrite(const boost::system::error_code& ec);
@@ -65,4 +68,6 @@ private:
 	std::shared_ptr<RecvNode> _recv_msg_node;
 	std::shared_ptr<MsgNode> _recv_head_node;
 	bool _b_head_parse = false;
+	std::atomic<time_t> _last_heart_beat_time;
+	std::mutex _session_mutex;
 };
