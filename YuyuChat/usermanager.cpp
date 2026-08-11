@@ -30,6 +30,21 @@ int UserManager::GetUid()
     return _user_info->_uid;
 }
 
+QString UserManager::GetIcon()
+{
+    return _user_info->_icon;
+}
+
+int UserManager::GetSex()
+{
+    return _user_info->_sex;
+}
+
+QString UserManager::GetDesc()
+{
+    return _user_info->_desc;
+}
+
 std::vector<std::shared_ptr<ApplyInfo> > UserManager::GetApplyList()
 {
     return _apply_list;

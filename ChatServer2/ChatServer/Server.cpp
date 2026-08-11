@@ -8,9 +8,6 @@ _current_slot(0)
 {
 	_time_wheel.resize(HEART_BEAT_THRESHOLD);
 	std::cout << "Start server " << "\n";
-	_timer.async_wait([this](boost::system::error_code e) {
-		on_timer(e);
-		});
 	StartAccept();
 }
 
@@ -64,9 +61,6 @@ void Server::on_timer(const boost::system::error_code& ec)
 		});
 }
 
-
-
-
 void Server::UpdateHeartBeat(std::shared_ptr<Session> session)
 {
 	std::lock_guard<std::shared_mutex> lock(_mutex);
@@ -76,6 +70,10 @@ void Server::UpdateHeartBeat(std::shared_ptr<Session> session)
 
 void Server::StartAccept()
 {
+	auto self = shared_from_this();
+	_timer.async_wait([self](boost::system::error_code e) {
+		self->on_timer(e);
+		});
 	auto& ioc = AsioIOContextPool::GetInstance()->GetIOContext();
 	auto new_session = std::make_shared<Session>(ioc, this);
 	_acceptor.async_accept(new_session->GetSocket(),
@@ -94,4 +92,15 @@ void Server::HandleAccept(std::shared_ptr<Session> new_session, const boost::sys
 	else {
 		std::cerr << "Accept Error: " << ec.message() << std::endl;
 	}
+}
+
+void Server::Stop() {
+	_acceptor.close(); // 关闭监听，不再接收新用户
+	_timer.cancel();   // 取消定时器
+
+	std::lock_guard<std::shared_mutex> lock(_mutex);
+	for (auto& pair : _sessions) {
+		pair.second->SafeClearSession(); // 让每个人都走一遍 Redis 清理流程
+	}
+	_sessions.clear();
 }

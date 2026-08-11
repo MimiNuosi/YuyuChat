@@ -19,6 +19,9 @@ public:
     void SetUid(int uid);
     void SetToken(QString token);
     int GetUid();
+    QString GetIcon();
+    int GetSex();
+    QString GetDesc();
     std::vector<std::shared_ptr<ApplyInfo>> GetApplyList();
     bool AlreadyApply(int uid);
     void AddApplyList(std::shared_ptr<ApplyInfo> apply);

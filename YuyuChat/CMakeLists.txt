@@ -67,6 +67,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         findfaildialog.h findfaildialog.cpp findfaildialog.ui
         authenfriend.h authenfriend.cpp authenfriend.ui
         friendinfopage.h friendinfopage.cpp friendinfopage.ui
+        userinfopage.h userinfopage.cpp userinfopage.ui
+        imagecropperlabel.h imagecropperlabel.cpp
+        imagecropperdialog.h
+
 
 
     )
