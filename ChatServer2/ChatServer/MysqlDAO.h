@@ -28,6 +28,27 @@ struct ApplyInfo {
     int _sex;
     int _status;
 };
+
+//聊天线程信息
+struct ChatThreadInfo {
+    int _thread_id;
+    std::string _type;     // "private" or "group"
+    int _user1_id;    // 私聊时对应 private_chat.user1_id；群聊时设为 0
+    int _user2_id;    // 私聊时对应 private_chat.user2_id；群聊时设为 0
+};
+
+//聊天消息信息
+struct ChatMessage {
+    int message_id;
+    int thread_id;
+    int sender_id;
+    int recv_id;
+    std::string unique_id;
+    std::string content;
+    std::string chat_time;
+    int status;
+};
+
 class MysqlDAO
 {
 public:
@@ -43,6 +64,9 @@ public:
 	bool GetApplyList(int uid, std::vector<std::shared_ptr<ApplyInfo>>& applyList, int begin, int limit);
 	bool GetFriendList(int to_uid, std::vector<std::shared_ptr<UserInfo>>& friend_list);
     bool AuthFriend(const int& from, const int& to, std::string& backname);
+    bool GetUserThreads(int64_t userId, int64_t lastId, int pageSize,
+        std::vector<std::shared_ptr<ChatThreadInfo>>& threads,
+        bool& loadMore, int64_t& nextLastId);
 private:
     std::unique_ptr<MySqlPool> pool_;
 };

@@ -570,6 +570,49 @@ void HeartBeatHandler(std::shared_ptr<Session> session, const short& msg_id, con
         });
 }
 
+void GetUserThreadsHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+
+    auto uid = root["uid"].asInt64();
+    auto last_id = root.isMember("last_id") ? root["last_id"].asInt64() : 0; // 首次拉取传 0
+    auto page_size = root.isMember("page_size") ? root["page_size"].asInt() : 20; // 默认一页20条
+
+    Json::Value rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+    rtvalue["uid"] = (int)uid;
+
+    Defer defer([&session, &rtvalue]() {
+        session->Send(rtvalue.toStyledString(), ID_LOAD_CHAT_THREAD_RSP);
+        });
+
+    std::vector<std::shared_ptr<ChatThreadInfo>> threads;
+    bool load_more = false;
+    int64_t next_last_id = 0;
+
+    // 通过 MysqlManager 调用刚才优化的 DAO 方法
+    bool res = MysqlManager::GetInstance()->GetUserThreads(uid, last_id, page_size, threads, load_more, next_last_id);
+    if (!res) {
+        rtvalue["error"] = ErrorCodes::UidInvalid;
+        return;
+    }
+
+    rtvalue["load_more"] = load_more;
+    rtvalue["next_last_id"] = (Json::Int64)next_last_id;
+    rtvalue["threads"] = Json::arrayValue;
+
+    for (auto& thread : threads) {
+        Json::Value thread_value;
+        thread_value["thread_id"] = (Json::Int64)thread->_thread_id;
+        thread_value["type"] = thread->_type;
+        thread_value["user1_id"] = (Json::Int64)thread->_user1_id;
+        thread_value["user2_id"] = (Json::Int64)thread->_user2_id;
+        rtvalue["threads"].append(thread_value);
+    }
+}
+
+REGISTER_CALL_BACK(ID_LOAD_CHAT_THREAD_REQ, GetUserThreadsHandler);
 REGISTER_CALL_BACK(ID_HEART_BEAT_REQ, HeartBeatHandler)
 REGISTER_CALL_BACK(ID_TEXT_CHAT_MSG_REQ, ChatTextHandler)
 REGISTER_CALL_BACK(ID_AUTH_FRIEND_REQ, AuthFriendHandler)

@@ -49,6 +49,12 @@ bool MysqlManager::AuthFriend(const int& from, const int& to, std::string& backn
     return _dao.AuthFriend(from, to, backname);
 }
 
+bool MysqlManager::GetUserThreads(int64_t userId, int64_t lastId, int pageSize,
+    std::vector<std::shared_ptr<ChatThreadInfo>>& threads,
+    bool& loadMore, int64_t& nextLastId) {
+	return _dao.GetUserThreads(userId, lastId, pageSize, threads, loadMore, nextLastId);
+}
+
 MysqlManager::MysqlManager() 
 {
     

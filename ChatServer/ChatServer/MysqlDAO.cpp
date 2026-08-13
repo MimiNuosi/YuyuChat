@@ -404,3 +404,75 @@ bool MysqlDAO::AuthFriend(const int& from, const int& to, std::string& backname)
     }
     return true;
 }
+
+bool MysqlDAO::GetUserThreads(int64_t userId, int64_t lastId, int pageSize,
+    std::vector<std::shared_ptr<ChatThreadInfo>>& threads,
+    bool& loadMore, int64_t& nextLastId)
+{
+    loadMore = false;
+    nextLastId = lastId;
+    threads.clear();
+
+    auto con = pool_->getConnection();
+    if (!con) return false;
+    Defer defer([this, &con]() { pool_->returnConnection(std::move(con)); });
+
+    try {
+        // 【优化后的 SQL】：将 LIMIT 下推至子查询，极大地压榨临时表的体积
+        std::string sql = R"(
+            SELECT thread_id, type, user1_id, user2_id FROM (
+                (SELECT thread_id, 'private' AS type, user1_id, user2_id 
+                 FROM private_chat 
+                 WHERE (user1_id = ? OR user2_id = ?) AND thread_id > ? 
+                 ORDER BY thread_id ASC LIMIT ?)
+                UNION ALL
+                (SELECT thread_id, 'group' AS type, 0 AS user1_id, 0 AS user2_id 
+                 FROM group_chat_member 
+                 WHERE user_id = ? AND thread_id > ? 
+                 ORDER BY thread_id ASC LIMIT ?)
+            ) AS combined_threads
+            ORDER BY thread_id ASC 
+            LIMIT ?
+        )";
+
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(sql));
+
+        int limit_count = pageSize + 1; // 多查一条用于判断是否还有后续数据
+        int idx = 1;
+        pstmt->setInt64(idx++, userId);
+        pstmt->setInt64(idx++, userId);
+        pstmt->setInt64(idx++, lastId);
+        pstmt->setInt(idx++, limit_count); // private 子查询限制
+
+        pstmt->setInt64(idx++, userId);
+        pstmt->setInt64(idx++, lastId);
+        pstmt->setInt(idx++, limit_count); // group 子查询限制
+
+        pstmt->setInt(idx++, limit_count); // 最终外层聚合限制
+
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+
+        while (res->next()) {
+            auto cti = std::make_shared<ChatThreadInfo>();
+            cti->_thread_id = res->getInt64("thread_id");
+            cti->_type = res->getString("type");
+            cti->_user1_id = res->getInt64("user1_id");
+            cti->_user2_id = res->getInt64("user2_id");
+            threads.push_back(cti);
+        }
+
+        if (threads.size() > pageSize) {
+            loadMore = true;
+            threads.pop_back(); // 剔除多取的那一条
+        }
+
+        if (!threads.empty()) {
+            nextLastId = threads.back()->_thread_id;
+        }
+        return true;
+    }
+    catch (sql::SQLException& e) {
+        std::cerr << "SQLException: " << e.what() << " (MySQL error code: " << e.getErrorCode() << ")" << std::endl;
+        return false;
+    }
+}

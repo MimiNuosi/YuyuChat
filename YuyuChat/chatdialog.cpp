@@ -96,6 +96,7 @@ ChatDialog::ChatDialog(QWidget *parent)
     connect(ui->con_user_list,&QListWidget::itemClicked,this,&ChatDialog::slot_item_clicked);
     connect(ui->chat_page,&ChatPage::sig_append_send_chat_msg,this,&ChatDialog::slot_append_send_chat_msg);
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_text_chat_msg,this,&ChatDialog::slot_text_chat_msg);
+    connect(TcpManager::GetInstance().get(), &TcpManager::sig_load_chat_thread, this, &ChatDialog::slot_load_chat_thread);
 }
 
 ChatDialog::~ChatDialog()
@@ -649,6 +650,83 @@ void ChatDialog::slot_text_chat_msg(std::shared_ptr<TextChatMsg> msg)
     ui->chat_user_list->addItem(item); // 把行加入侧边列表
     ui->chat_user_list->setItemWidget(item, chat_user_wid); // 塞入自定义UI
     _chat_items_added.insert(msg->_from_uid,item);
+}
+
+void ChatDialog::showLoadingDlg(bool b_show) {
+    if (b_show) {
+        if (!_loading_dlg) {
+            _loading_dlg = new LoadingDialog(this);
+            _loading_dlg->setModal(true);
+        }
+        _loading_dlg->show();
+
+        // 【核心优化 1：悬空 Loading 兜底】10秒后如果还没关，强制关闭防止死锁
+        QTimer::singleShot(10000, this, [this]() {
+            if (_loading_dlg && _loading_dlg->isVisible()) {
+                showLoadingDlg(false);
+                qDebug() << "[UI安全] 拉取会话列表超时，已强制关闭 Loading 框";
+            }
+        });
+    } else {
+        if (_loading_dlg) {
+            _loading_dlg->hide();
+            _loading_dlg->deleteLater();
+            _loading_dlg = nullptr;
+        }
+    }
+}
+
+// 3. 发送拉取请求
+void ChatDialog::loadChatList() {
+    showLoadingDlg(true);
+
+    QJsonObject jsonObj;
+    auto uid = UserManager::GetInstance()->GetUid();
+    jsonObj["uid"] = uid;
+    // 从本地记录的最后一个 id 开始拉，初始为 0
+    jsonObj["last_id"] = _next_last_thread_id;
+    jsonObj["page_size"] = 20;
+
+    QJsonDocument doc(jsonObj);
+    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+    // 注意替换为你实际定义的 ReqId
+    emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_LOAD_CHAT_THREAD_REQ, jsonData);
+}
+
+// 4. 处理回包
+void ChatDialog::slot_load_chat_thread(bool load_more, qint64 last_thread_id, std::vector<std::shared_ptr<ChatThreadInfo>> chat_threads) {
+    for (auto& cti : chat_threads) {
+        if (cti->_type == "group") {
+            continue; // 群聊暂不处理
+        }
+
+        qint64 my_uid = UserManager::GetInstance()->GetUid();
+        qint64 other_uid = (my_uid == cti->_user1_id) ? cti->_user2_id : cti->_user1_id;
+
+        auto friend_info = UserManager::GetInstance()->GetFriendById(other_uid);
+        if (!friend_info) continue;
+
+        // 避免重复添加
+        if (_chat_items_added.contains(other_uid)) continue;
+
+        auto* chat_user_wid = new ChatUserWid();
+        chat_user_wid->SetInfo(friend_info);
+        QListWidgetItem* item = new QListWidgetItem;
+        item->setSizeHint(chat_user_wid->sizeHint());
+
+        ui->chat_user_list->addItem(item);
+        ui->chat_user_list->setItemWidget(item, chat_user_wid);
+        _chat_items_added.insert(other_uid, item);
+    }
+
+    // 【核心优化 2：杜绝 UI 风暴】只更新状态，不再递归触发 emit 发送网络请求
+    _b_chat_load_more = load_more;
+    _next_last_thread_id = last_thread_id;
+
+    SetSelectChatItem();
+    SetSelectChatPage();
+    showLoadingDlg(false);
 }
 
 void ChatDialog::loadMoreChatUser()

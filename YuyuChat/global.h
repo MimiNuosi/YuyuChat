@@ -44,6 +44,8 @@ enum ReqID{
     ID_NOTIFY_OFF_LINE_REQ = 1021, //通知用户下线
     ID_HEART_BEAT_REQ = 1023,      //心跳请求
     ID_HEART_BEAT_RSP = 1024,       //心跳回复
+    ID_LOAD_CHAT_THREAD_REQ = 1025,      //加载聊天线程
+    ID_LOAD_CHAT_THREAD_RSP = 1026,      //加载聊天线程回复
 };
 
 enum TipErr{
@@ -85,6 +87,12 @@ enum ListItemType{
     GROUP_TIP_ITEM,//分组提示条目
     LINE_ITEM,//分割线
     APPLY_FRIEND_ITEM,//好友申请条目
+};
+
+enum MessageStatus{
+    UN_READ = 0,
+    SEND_FAILED = 1,
+    READED = 2,
 };
 
 enum class ChatRole{

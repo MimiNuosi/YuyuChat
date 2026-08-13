@@ -10,7 +10,8 @@ using boost::asio::ip::tcp;
 
 class Session;
 
-class Server {
+class Server :public std::enable_shared_from_this<Server>
+{
 public:
 	Server(boost::asio::io_context& ioc, short port);
 	~Server();
@@ -18,6 +19,7 @@ public:
 	bool CheckUidVaild(std::string uuid);
 	void on_timer(const boost::system::error_code& ec);
 	void UpdateHeartBeat(std::shared_ptr<Session> session);
+	void Stop();
 private:
 	void StartAccept();
 	void HandleAccept(std::shared_ptr<Session> new_session, const boost::system::error_code& ec);

@@ -52,6 +52,11 @@ RedisManager::~RedisManager() {
     Close();
 }
 
+bool RedisManager::Connect(const std::string& host, int port, const std::string& password)
+{
+    return false;
+}
+
 void RedisManager::Close() {
     if (_redis) {
         _redis.reset();

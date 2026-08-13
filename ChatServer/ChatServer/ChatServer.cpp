@@ -49,16 +49,16 @@ int main(void) {
         boost::asio::io_context ioc;
         boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
 
+        // 6. 启动 TCP 监听
+        auto port = config["SelfServer"]["Port"];
+        auto s = std::make_shared<Server>(ioc, atoi(port.c_str()));
+
         // 当收到关闭信号时，同时关掉 TCP 和 gRPC 服务
-        signals.async_wait([&ioc, pool, &server](auto, auto) {
-            ioc.stop();
+        signals.async_wait([&ioc, &pool, &s, &server](auto, auto) {
+            s.Stop();
             pool->Stop();
             server->Shutdown();
             });
-
-        // 6. 启动 TCP 监听
-        auto port = config["SelfServer"]["Port"];
-        Server s(ioc, atoi(port.c_str()));
 
         // 主线程将阻塞在这里，直到收到关闭信号
         ioc.run();

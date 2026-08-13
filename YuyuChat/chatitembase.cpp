@@ -19,23 +19,29 @@ ChatItemBase::ChatItemBase(ChatRole role, QWidget *parent)
     pGLayout->setHorizontalSpacing(3);
     pGLayout->setContentsMargins(3, 3, 3, 3);
     QSpacerItem*pSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+    m_pStatusLabel = new QLabel();
+    m_pStatusLabel->setFixedSize(16,16);
+    m_pStatusLabel->setScaledContents(true);
     if(m_role == ChatRole::Self)
     {
         m_pNameLabel->setContentsMargins(0,0,8,0);
         m_pNameLabel->setAlignment(Qt::AlignRight);
-        pGLayout->addWidget(m_pNameLabel, 0,1, 1,1);
-        pGLayout->addWidget(m_pIconLabel, 0, 2, 2,1, Qt::AlignTop);
+        pGLayout->addWidget(m_pNameLabel, 0,2, 1,1);
+        pGLayout->addWidget(m_pIconLabel, 0, 3, 2,1, Qt::AlignTop);
         pGLayout->addItem(pSpacer, 1, 0, 1, 1);
-        pGLayout->addWidget(m_pBubble, 1,1, 1,1);
+        pGLayout->addWidget(m_pStatusLabel,1,1,1,1,Qt::AlignCenter);
+        pGLayout->addWidget(m_pBubble, 1,2, 1,1);
         pGLayout->setColumnStretch(0, 2);
-        pGLayout->setColumnStretch(1, 3);
+        pGLayout->setColumnStretch(1, 0);
+        pGLayout->setColumnStretch(2, 3);
+        pGLayout->setColumnStretch(3, 0);
     }else{
         m_pNameLabel->setContentsMargins(8,0,0,0);
         m_pNameLabel->setAlignment(Qt::AlignLeft);
         pGLayout->addWidget(m_pIconLabel, 0, 0, 2,1, Qt::AlignTop);
         pGLayout->addWidget(m_pNameLabel, 0,1, 1,1);
         pGLayout->addWidget(m_pBubble, 1,1, 1,1);
-        pGLayout->addItem(pSpacer, 1, 2, 1, 1);
+        pGLayout->addItem(pSpacer, 2, 2, 1, 1);
         pGLayout->setColumnStretch(1, 3);
         pGLayout->setColumnStretch(2, 2);
     }
@@ -61,4 +67,23 @@ void ChatItemBase::setWidget(QWidget *w)
     m_pBubble->deleteLater();
 
     m_pBubble = w;
+}
+
+void ChatItemBase::setStatus(int status)
+{
+    if (status == MessageStatus::UN_READ) {
+        m_pStatusLabel->setPixmap(QPixmap(":/res/unread.png"));
+        return;
+    }
+
+    if (status == MessageStatus::SEND_FAILED) {
+        m_pStatusLabel->setPixmap(QPixmap(":/res/send_fail.png"));
+        return;
+    }
+
+    if (status == MessageStatus::READED) {
+        m_pStatusLabel->setPixmap(QPixmap(":/res/readed.png"));
+        return;
+    }
+
 }

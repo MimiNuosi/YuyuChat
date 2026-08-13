@@ -42,6 +42,7 @@ signals:
     void sig_text_chat_msg(std::shared_ptr<TextChatMsg>);
     void sig_notify_offline();
     void sig_connection_close();
+    void sig_load_chat_thread(bool load_more, int last_thread_id,std::vector<std::shared_ptr<ChatThreadInfo>> chat_threads);
 };
 
 #endif // TCPMANAGER_H

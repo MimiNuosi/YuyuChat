@@ -18,6 +18,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_notify_offline,this,&MainWindow::SlotOffline);
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_connection_close,this,&MainWindow::SlotConnectionClose);
     //emit TcpManager::GetInstance()->sig_switch_chatdialog();
+
+    _chat_dlg->loadChatList();
 }
 
 MainWindow::~MainWindow()

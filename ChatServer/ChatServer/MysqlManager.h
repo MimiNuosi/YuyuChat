@@ -17,6 +17,9 @@ public:
     bool GetApplyList(int uid, std::vector<std::shared_ptr<ApplyInfo>>& applyList, int begin, int limit);
     bool GetFriendList(int to_uid, std::vector<std::shared_ptr<UserInfo>>& friend_list);
 	bool AuthFriend(const int& from, const int& to, std::string& backname);
+    bool GetUserThreads(int64_t userId, int64_t lastId, int pageSize,
+        std::vector<std::shared_ptr<ChatThreadInfo>>& threads,
+		bool& loadMore, int64_t& nextLastId);
 private:
     MysqlManager();
     MysqlDAO  _dao;

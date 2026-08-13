@@ -27,39 +27,73 @@ MySqlPool::MySqlPool(const std::string& url, const std::string& user, const std:
 }
 
 void MySqlPool::checkConnection() {
-    // 加上互斥锁，保证遍历期间没有其他线程来借车或还车
-    std::lock_guard<std::mutex> guard(mutex_);
+    // 1. 获取当前需要抽查的数量 (避免死循环)
+    size_t targetCount = 0;
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        targetCount = pool_.size();
+    }
 
-    // 获取当前时间戳
+    size_t processed = 0;
     auto currentTime = std::chrono::system_clock::now().time_since_epoch();
     long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(currentTime).count();
 
-    // 直接遍历双端队列，极其优雅！
-    for (auto& conn : pool_) {
-        // 如果距离上次操作时间小于阈值（比如配置的存活时间），就不发心跳
-        if (timestamp - conn->_last_time < 5) { // 快速测试
-            continue;
+    // 2. 开始循环抽查，处理完 targetCount 个就结束这一轮
+    while (processed < targetCount) {
+        std::unique_ptr<SqlConnection> conn;
+
+        // ==========================================
+        // 动作一：【极短锁】只负责从池子里拿出一个连接
+        // ==========================================
+        {
+            std::lock_guard<std::mutex> guard(mutex_);
+            if (pool_.empty()) {
+                break; // 池子空了，直接结束
+            }
+            conn = std::move(pool_.front());
+            pool_.pop_front();
+        }
+        processed++; // 拿出成功，计数 +1
+
+        // ==========================================
+        // 动作二：【无锁】执行极度耗时的网络心跳和重连
+        // ==========================================
+        if (timestamp - conn->_last_time >= 5) {
+            try {
+                // 发送心跳包
+                std::unique_ptr<sql::Statement> stmt(conn->_con->createStatement());
+                stmt->executeQuery("SELECT 1");
+                conn->_last_time = timestamp;
+                std::cout << "execute timer alive query, cur is " << timestamp << std::endl;
+            }
+            catch (sql::SQLException& e) {
+                std::cout << "Error keeping connection alive: " << e.what() << std::endl;
+
+                // 【核心优化】：心跳失败，在完全没有互斥锁的情况下进行耗时的重连！
+                try {
+                    sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
+                    std::unique_ptr<sql::Connection> newcon(driver->connect(url_, user_, pass_));
+                    newcon->setSchema(schema_);
+                    conn->_con = std::move(newcon);
+                    conn->_last_time = timestamp;
+                    std::cout << "mysql connection reconnect success" << std::endl;
+                }
+                catch (sql::SQLException& e2) {
+                    std::cout << "Reconnect failed: " << e2.what() << std::endl;
+                    // 即使重连失败，我们依然把这具“尸体”放回去。
+                    // 业务层 getConnection 拿到后执行业务会失败，触发业务层的容错机制。
+                    // 下一轮定时器检查时，它依然会被拿出来尝试重连。
+                }
+            }
         }
 
-        try {
-            // 发送心跳包
-            std::unique_ptr<sql::Statement> stmt(conn->_con->createStatement());
-            stmt->executeQuery("SELECT 1");
-
-            // 更新该连接的最后操作时间
-            conn->_last_time = timestamp;
-            std::cout << "execute timer alive query, cur is " << timestamp << std::endl;
-
-        }
-        catch (sql::SQLException& e) {
-            std::cout << "Error keeping connection alive: " << e.what() << std::endl;
-
-            // 如果心跳失败（说明连接真断了），就在原地重新建一个连接补上
-            sql::mysql::MySQL_Driver* driver = sql::mysql::get_mysql_driver_instance();
-            std::unique_ptr<sql::Connection> newcon(driver->connect(url_, user_, pass_));
-            newcon->setSchema(schema_);
-            conn->_con = std::move(newcon);
-            conn->_last_time = timestamp;
+        // ==========================================
+        // 动作三：【极短锁】将检查完毕（或重连完毕）的连接放回池子
+        // ==========================================
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            pool_.push_back(std::move(conn));
+            cond_.notify_one(); // 通知可能正在等待借连接的业务线程
         }
     }
 }
