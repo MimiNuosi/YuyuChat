@@ -20,7 +20,7 @@ TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(
         }
 
         QJsonObject jsonObj;
-        jsonObj["uid"] = user_info->_uid;
+        jsonObj["fromuid"] = user_info->_uid;
         QJsonDocument doc(jsonObj);
         QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
 
@@ -416,8 +416,8 @@ void TcpManager::initHandlers()
             cti->_thread_id = value["thread_id"].toVariant().toLongLong();
             cti->_user1_id  = value["user1_id"].toVariant().toLongLong();
             cti->_type = value["type"].toString();
-            cti->_user1_id = value["user1_id"].toInt();
-            cti->_user2_id = value["user2_id"].toInt();
+            cti->_user1_id = value["user1_id"].toVariant().toLongLong();
+            cti->_user2_id = value["user2_id"].toVariant().toLongLong();
             chat_threads.push_back(cti);
         }
 
@@ -442,10 +442,10 @@ void TcpManager::handleMessage(ReqID id, int len, QByteArray data)
 
 void TcpManager::slot_tcp_connect(ServerInfo si)
 {
-    qDebug() << "Connect to server ...";
     _host = si.Host;
     _port = static_cast<uint16_t>(si.Port.toInt());
     _socket.connectToHost(_host,_port);
+    qDebug() << "[网络路由] 准备连接 ChatServer，目标 IP:" << _host << " 目标端口:" << _port;
 }
 
 void TcpManager::slot_send_data(ReqID reqid, QByteArray data)

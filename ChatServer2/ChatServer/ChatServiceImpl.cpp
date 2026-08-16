@@ -105,16 +105,16 @@ Status ChatServiceImpl::TextChatMsg(ServerContext* context, const TextChatMsgReq
     //在内存中则直接发送通知对方
     Json::Value  rtvalue;
     rtvalue["error"] = ErrorCodes::Success;
-    rtvalue["applyuid"] = request->fromuid();
+    rtvalue["fromuid"] = request->fromuid();
     rtvalue["touid"] = request->touid();
 	Json::Value text_array;
     for (const auto& text : request->textmsgs()) {
 		Json::Value element;
 		element["msgid"] = text.msgid();
-		element["msgcontext"] = text.msgcontext();
+		element["content"] = text.msgcontext();
         text_array.append(element);
     }
-	rtvalue["text array"] = text_array;
+	rtvalue["text_array"] = text_array;
 
     std::string return_str = rtvalue.toStyledString();
 
@@ -186,7 +186,9 @@ Status ChatServiceImpl::KickUser(ServerContext* context, const KickUserReq* requ
 	//在内存中则直接发送通知对方
     session->Offline(uid);
 
-	_p_server->ClearSession(session->GetSessionId());
+    if (session->GetServer()) {
+        session->GetServer()->ClearSession(session->GetSessionId());
+    }
 
     return Status::OK;
 }

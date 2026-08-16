@@ -103,7 +103,7 @@ message TextChatMsgReq{
 }
 
 message TextChatData{
-    int32 msgid = 1;
+    string msgid = 1;
     string msgcontext = 2;
 }
 
@@ -124,10 +124,10 @@ message KickUserRsp{
 }
 
 service ChatService{
-    rpc AddFriend(AddFriendReq) returns (AddFriendRsp) {}
+    rpc AddFriend(AddFriendReq) returns (AddFriendRsp){}
     rpc ReplyFriend(ReplyFriendReq) returns (ReplyFriendRsp) {}
     rpc SendChatMsg(SendChatMsgReq) returns (SendChatMsgRsp) {}
-    rpc AuthFriend(AuthFriendReq) returns (AuthFriendRsp) {}-
+    rpc AuthFriend(AuthFriendReq) returns (AuthFriendRsp) {}
     rpc TextChatMsg(TextChatMsgReq) returns (TextChatMsgRsp) {}
     rpc KickUser(KickUserReq) returns (KickUserRsp){}
 }

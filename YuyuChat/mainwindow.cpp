@@ -18,8 +18,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_notify_offline,this,&MainWindow::SlotOffline);
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_connection_close,this,&MainWindow::SlotConnectionClose);
     //emit TcpManager::GetInstance()->sig_switch_chatdialog();
-
-    _chat_dlg->loadChatList();
 }
 
 MainWindow::~MainWindow()
@@ -110,19 +108,22 @@ void MainWindow::SlotSwitchChat()
     _chat_dlg->show();
     this->setMinimumSize(QSize(1050,900));
     this->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    _chat_dlg->loadChatList();
 }
 
 void MainWindow::SlotOffline()
 {
-
-    QMessageBox::information(this, "下线提示", "同账号异地登录，该终端下线！");
+    if (_ui_state == LOGIN_UI) {
+        return;
+    }
+    QMessageBox::warning(nullptr, "下线提示", "同账号异地登录，该终端下线！");
     TcpManager::GetInstance()->CloseConnection();
     offlineLogin();
 }
 
 void MainWindow::SlotConnectionClose()
 {
-    QMessageBox::information(this, "网络异常", "与服务器的连接已断开，请检查网络设置！");
+    QMessageBox::information(nullptr, "网络异常", "与服务器的连接已断开，请检查网络设置！");
     TcpManager::GetInstance()->CloseConnection();
     offlineLogin();
 }

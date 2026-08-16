@@ -17,7 +17,7 @@ void UserManager::RemoveSession(int uid,std::string session_id)
     {
         std::lock_guard<std::mutex> lock(_mutex);
         auto iter = _user_sessions.find(uid);
-        if (iter != _user_sessions.end()) {
+        if (iter == _user_sessions.end()) {
             return;
         }
 

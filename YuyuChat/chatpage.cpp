@@ -74,87 +74,59 @@ void ChatPage::paintEvent(QPaintEvent *event)
 
 void ChatPage::on_send_button_clicked()
 {
-    if(_user_info == nullptr){
+    if (_user_info == nullptr) {
+        qDebug() << "[警告] 当前未选中任何聊天对象，取消发送";
         return;
     }
-    auto user_info = UserManager::GetInstance()->GetUserInfo();
-    auto pTextEdit = ui->chat_edit;
-    ChatRole role = ChatRole::Self;
-    QString userName = user_info->_name;
-    QString userIcon = user_info->_icon;
 
+    auto self_info = UserManager::GetInstance()->GetUserInfo();
+    if (!self_info) return;
+
+    auto pTextEdit = ui->chat_edit;
     const QVector<MsgInfo>& msgList = pTextEdit->getMsgList();
+    if (msgList.isEmpty()) return;
+
     QJsonObject textObj;
     QJsonArray textArray;
-    int txt_size = 0;
 
-    for(int i=0; i<msgList.size(); ++i)
+    for (int i = 0; i < msgList.size(); ++i)
     {
         QString type = msgList[i].msgFlag;
-        ChatItemBase *pChatItem = new ChatItemBase(role);
-        pChatItem->setUserName(userName);
-        pChatItem->setUserIcon(QPixmap(userIcon));
-        QWidget *pBubble = nullptr;
-        if(type == "text")
+        if (type == "text")
         {
-            //生成唯一id
-            QUuid uuid = QUuid::createUuid();
-            //转为字符串
-            QString uuidString = uuid.toString();
-
-            pBubble = new TextBubble(role, msgList[i].content);
-
-            if(txt_size +msgList[i].content.length() >1024){
-                textObj["fromuid"] = user_info->_uid;
-                textObj["touid"] = _user_info->_uid;
-                textObj["text_array"] = textArray;
-                QJsonDocument doc(textObj);
-                QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
-
-                txt_size = 0;
-                textArray = QJsonArray();
-                textObj = QJsonObject();
-                emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_TEXT_CHAT_MSG_REQ,jsonData);
+            QString clean_content = msgList[i].content.trimmed();
+            if (clean_content.isEmpty()) {
+                continue; // 避免发送纯换行或空消息
             }
-            //将bubble和uid绑定，以后可以等网络返回消息后设置是否送达
-            //_bubble_map[uuidString] = pBubble;
-            txt_size += msgList[i].content.length();
+
+            QString uuidString = QUuid::createUuid().toString();
+
             QJsonObject obj;
-            QByteArray utf8Message = msgList[i].content.toUtf8();
-            obj["content"] = QString::fromUtf8(utf8Message);
+            obj["content"] = clean_content;
             obj["msgid"] = uuidString;
             textArray.append(obj);
-            auto txt_msg = std::make_shared<TextChatData>(uuidString, obj["content"].toString(),
-                                                          user_info->_uid, _user_info->_uid);
+
+            auto txt_msg = std::make_shared<TextChatData>(
+                uuidString, clean_content,
+                self_info->_uid, _user_info->_uid
+                );
+
             emit sig_append_send_chat_msg(txt_msg);
         }
-        else if(type == "image")
-        {
-            pBubble = new PictureBubble(QPixmap(msgList[i].content) , role);
-        }
-        else if(type == "file")
-        {
-
-        }
-        if(pBubble != nullptr)
-        {
-            pChatItem->setWidget(pBubble);
-            ui->chat_data_list->appendChatItem(pChatItem);
-        }
-        if(pBubble != nullptr)
-        {
-            pChatItem->setWidget(pBubble);
-            ui->chat_data_list->appendChatItem(pChatItem);
-        }
     }
-    textObj["fromuid"] = user_info->_uid;
-    textObj["touid"] = _user_info->_uid;
-    textObj["text_array"] = textArray;
-    QJsonDocument doc(textObj);
-    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
 
-    txt_size = 0;
-    textArray = QJsonArray();
-    textObj = QJsonObject();
-    emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_TEXT_CHAT_MSG_REQ,jsonData);
+    if (!textArray.isEmpty()) {
+        textObj["fromuid"] = self_info->_uid;
+        textObj["touid"] = _user_info->_uid;
+        textObj["text_array"] = textArray;
+
+        QJsonDocument doc(textObj);
+        QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
+
+        // 发送给服务器
+        emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_TEXT_CHAT_MSG_REQ, jsonData);
+    }
+
+    // 清空输入框
+    pTextEdit->clear();
 }

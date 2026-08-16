@@ -41,9 +41,10 @@ ChatItemBase::ChatItemBase(ChatRole role, QWidget *parent)
         pGLayout->addWidget(m_pIconLabel, 0, 0, 2,1, Qt::AlignTop);
         pGLayout->addWidget(m_pNameLabel, 0,1, 1,1);
         pGLayout->addWidget(m_pBubble, 1,1, 1,1);
-        pGLayout->addItem(pSpacer, 2, 2, 1, 1);
-        pGLayout->setColumnStretch(1, 3);
-        pGLayout->setColumnStretch(2, 2);
+        pGLayout->addItem(pSpacer, 1, 2, 1, 1);
+        pGLayout->setColumnStretch(0, 0); // 头像固定
+        pGLayout->setColumnStretch(1, 0); // 气泡根据内容自适应
+        pGLayout->setColumnStretch(2, 1); // 右侧弹簧吸收剩余所有空间
     }
     this->setLayout(pGLayout);
 }
@@ -62,11 +63,17 @@ void ChatItemBase::setWidget(QWidget *w)
 {
     QGridLayout *pGLayout = qobject_cast<QGridLayout *>(this->layout());
 
-    pGLayout->replaceWidget(m_pBubble, w);
+    // 1. 替换控件，并接收返回的旧布局项
+    QLayoutItem *oldItem = pGLayout->replaceWidget(m_pBubble, w);
+    if (oldItem) {
+        delete oldItem; // 必须删除旧的布局项以防止内存泄漏
+    }
 
     m_pBubble->deleteLater();
-
     m_pBubble = w;
+
+    //  2. 必须手动调用 show() 唤醒新气泡
+    m_pBubble->show();
 }
 
 void ChatItemBase::setStatus(int status)

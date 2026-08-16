@@ -56,7 +56,7 @@ void Session::Offline(int uid)
 
 bool Session::IsHeartBeatTimeout()
 {
-	return std::difftime(time(nullptr), _last_heart_beat_time.load()) > HEART_BEAT_THRESHOLD;
+	return std::difftime(time(nullptr), _last_heart_beat_time.load()) >= HEART_BEAT_THRESHOLD;
 }
 
 void Session::UpdateHeartBeatTime()
@@ -124,13 +124,14 @@ void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
 		auto self = shared_from_this();
 		while (bt) {
 			if (!_b_head_parse) {
-				if (bt + _recv_head_node->_cur_len < HEAD_DATA_LEN) {
+				if (bt + _recv_head_node->_cur_len < HEAD_TOTAL_LEN) {
 					memcpy(_recv_head_node->_data + _recv_head_node->_cur_len, _data + copy_len, bt);
 					_recv_head_node->_cur_len += bt;
 					_socket.async_read_some(boost::asio::buffer(_data, MAX_LENGTH),
 						[self](const boost::system::error_code& error, std::size_t bytes_transferred) {
 							self->HandleRead(error, bytes_transferred);
 						});
+					return;
 				}
 
 				int head_remain = HEAD_TOTAL_LEN - _recv_head_node->_cur_len;

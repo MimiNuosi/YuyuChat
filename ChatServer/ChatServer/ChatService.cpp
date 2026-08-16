@@ -309,8 +309,8 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
         }
 		});
 
-    std::string uid_ip_key = "";
-	auto uid_ip_value = USERIPPREFIX + uid_str;
+    std::string uid_ip_key = USERIPPREFIX + uid_str;
+    std::string uid_ip_value = "";
 	bool b_ip = RedisManager::GetInstance()->Get(uid_ip_key, uid_ip_value);
     if (b_ip) {
 		auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
@@ -321,6 +321,12 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
                 //清除旧的连接
                 old_session->GetServer()->ClearSession(old_session->GetSessionId());
             }
+        }
+        else {
+            std::cout << "[踢人通知] 检测到跨服重复登录，通过 gRPC 通知 " << uid_ip_value << " 踢出 UID: " << uid << std::endl;
+            KickUserReq kick_req;
+            kick_req.set_uid(uid);
+            ChatGrpcClient::GetInstance()->KickUser(uid_ip_value, kick_req);
         }
     }
 
@@ -509,7 +515,7 @@ void ChatTextHandler(std::shared_ptr<Session> session, short msg_id, std::string
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
-    auto uid = root["uid"].asInt();
+    auto uid = root["fromuid"].asInt();
     auto touid = root["touid"].asInt();
     Json::Value text_array = root["text_array"];
 
@@ -549,7 +555,7 @@ void ChatTextHandler(std::shared_ptr<Session> session, short msg_id, std::string
     chat_req.set_touid(touid);
     for (const auto& text : text_array) {
 		auto content = text["content"].asString();
-		auto msg_id = text["msg_id"].asInt();
+		auto msg_id = text["msgid"].asString();
 		auto* text_msg = chat_req.add_textmsgs();
 		text_msg->set_msgcontext(content);
 		text_msg->set_msgid(msg_id);

@@ -43,6 +43,7 @@ public:
 	void Close() {
 		boost::system::error_code ec;
 		_socket.close(ec);
+		_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
 		if (ec) {
 			std::cerr << "Close socket error: " << ec.message() << std::endl;
 		}

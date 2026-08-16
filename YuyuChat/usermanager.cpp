@@ -89,7 +89,7 @@ void UserManager::AddFriendList(QJsonArray apply)
         auto icon = value["icon"].toString();
         auto nick = value["nick"].toString();
         auto sex = value["sex"].toInt();
-        auto uid = value["applyuid"].toInt();
+        auto uid = value["uid"].toInt();
         auto back = value["back"].toString();
         auto info = std::make_shared<UserInfo>(uid,name,
                                                 nick,icon,sex,desc,back);

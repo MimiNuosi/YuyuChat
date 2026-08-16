@@ -5,6 +5,7 @@
 #include "message.pb.h"
 #include "const.h"
 #include "MysqlDAO.h"
+#include "Server.h"
 using grpc::ServerContext;
 using grpc::Status;
 using message::AddFriendReq;
@@ -17,6 +18,8 @@ using message::ChatService;
 using message::TextChatMsgReq;
 using message::TextChatMsgRsp;
 using message::TextChatData;
+using message::KickUserReq;
+using message::KickUserRsp;
 
 class ChatServiceImpl final : public ChatService::Service
 {
@@ -32,5 +35,13 @@ public:
         const TextChatMsgReq* request, TextChatMsgRsp* response) override;
 
     bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
+
+    void RegisterServer(std::shared_ptr<Server> pServer);
+
+	Status KickUser(ServerContext* context, const KickUserReq* request, KickUserRsp* response) override;
+
+private:
+    std::shared_ptr<Server> _p_server;
+	std::mutex _mutex;
 };
 

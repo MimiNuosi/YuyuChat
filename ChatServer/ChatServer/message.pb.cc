@@ -29,10 +29,12 @@ namespace message {
 inline constexpr TextChatData::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
-        msgcontext_(
+        msgid_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
-        msgid_{0} {}
+        msgcontext_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()) {}
 
 template <typename>
 PROTOBUF_CONSTEXPR TextChatData::TextChatData(::_pbi::ConstantInitialized)
@@ -713,8 +715,8 @@ const ::uint32_t
         5, // hasbit index offset
         PROTOBUF_FIELD_OFFSET(::message::TextChatData, _impl_.msgid_),
         PROTOBUF_FIELD_OFFSET(::message::TextChatData, _impl_.msgcontext_),
-        1,
         0,
+        1,
         0x081, // bitmap
         PROTOBUF_FIELD_OFFSET(::message::TextChatMsgRsp, _impl_._has_bits_),
         7, // hasbit index offset
@@ -810,7 +812,7 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "touid\030\003 \001(\005\"Y\n\016TextChatMsgReq\022\017\n\007fromuid"
     "\030\001 \001(\005\022\r\n\005touid\030\002 \001(\005\022\'\n\010textmsgs\030\003 \003(\0132"
     "\025.message.TextChatData\"1\n\014TextChatData\022\r"
-    "\n\005msgid\030\001 \001(\005\022\022\n\nmsgcontext\030\002 \001(\t\"h\n\016Tex"
+    "\n\005msgid\030\001 \001(\t\022\022\n\nmsgcontext\030\002 \001(\t\"h\n\016Tex"
     "tChatMsgRsp\022\r\n\005error\030\001 \001(\005\022\017\n\007fromuid\030\002 "
     "\001(\005\022\r\n\005touid\030\003 \001(\005\022\'\n\010textmsgs\030\004 \003(\0132\025.m"
     "essage.TextChatData\"\032\n\013KickUserReq\022\013\n\003ui"
@@ -5996,6 +5998,7 @@ PROTOBUF_NDEBUG_INLINE TextChatData::Impl_::Impl_(
     [[maybe_unused]] const ::message::TextChatData& from_msg)
       : _has_bits_{from._has_bits_},
         _cached_size_{0},
+        msgid_(arena, from.msgid_),
         msgcontext_(arena, from.msgcontext_) {}
 
 TextChatData::TextChatData(
@@ -6011,7 +6014,6 @@ TextChatData::TextChatData(
   _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
       from._internal_metadata_);
   new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
-  _impl_.msgid_ = from._impl_.msgid_;
 
   // @@protoc_insertion_point(copy_constructor:message.TextChatData)
 }
@@ -6019,11 +6021,11 @@ PROTOBUF_NDEBUG_INLINE TextChatData::Impl_::Impl_(
     [[maybe_unused]] ::google::protobuf::internal::InternalVisibility visibility,
     [[maybe_unused]] ::google::protobuf::Arena* PROTOBUF_NULLABLE arena)
       : _cached_size_{0},
+        msgid_(arena),
         msgcontext_(arena) {}
 
 inline void TextChatData::SharedCtor(::_pb::Arena* PROTOBUF_NULLABLE arena) {
   new (&_impl_) Impl_(internal_visibility(), arena);
-  _impl_.msgid_ = {};
 }
 TextChatData::~TextChatData() {
   // @@protoc_insertion_point(destructor:message.TextChatData)
@@ -6036,6 +6038,7 @@ inline void TextChatData::SharedDtor(MessageLite& self) {
   }
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.msgid_.Destroy();
   this_._impl_.msgcontext_.Destroy();
   this_._impl_.~Impl_();
 }
@@ -6083,7 +6086,7 @@ TextChatData::GetClassData() const {
   return TextChatData_class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 39, 2>
+const ::_pbi::TcParseTable<1, 2, 0, 44, 2>
 TextChatData::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(TextChatData, _impl_._has_bits_),
@@ -6104,24 +6107,25 @@ TextChatData::_table_ = {
   }, {{
     // string msgcontext = 2;
     {::_pbi::TcParser::FastUS1,
-     {18, 0, 0,
+     {18, 1, 0,
       PROTOBUF_FIELD_OFFSET(TextChatData, _impl_.msgcontext_)}},
-    // int32 msgid = 1;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(TextChatData, _impl_.msgid_), 1>(),
-     {8, 1, 0,
+    // string msgid = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 0, 0,
       PROTOBUF_FIELD_OFFSET(TextChatData, _impl_.msgid_)}},
   }}, {{
     65535, 65535
   }}, {{
-    // int32 msgid = 1;
-    {PROTOBUF_FIELD_OFFSET(TextChatData, _impl_.msgid_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kInt32)},
+    // string msgid = 1;
+    {PROTOBUF_FIELD_OFFSET(TextChatData, _impl_.msgid_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
     // string msgcontext = 2;
-    {PROTOBUF_FIELD_OFFSET(TextChatData, _impl_.msgcontext_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    {PROTOBUF_FIELD_OFFSET(TextChatData, _impl_.msgcontext_), _Internal::kHasBitsOffset + 1, 0, (0 | ::_fl::kFcOptional | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\24\0\12\0\0\0\0\0"
+    "\24\5\12\0\0\0\0\0"
     "message.TextChatData"
+    "msgid"
     "msgcontext"
   }},
 };
@@ -6133,10 +6137,14 @@ PROTOBUF_NOINLINE void TextChatData::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _impl_._has_bits_[0];
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
-    _impl_.msgcontext_.ClearNonDefaultToEmpty();
+  if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
+    if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      _impl_.msgid_.ClearNonDefaultToEmpty();
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
+      _impl_.msgcontext_.ClearNonDefaultToEmpty();
+    }
   }
-  _impl_.msgid_ = 0;
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -6160,17 +6168,18 @@ PROTOBUF_NOINLINE void TextChatData::Clear() {
   (void)cached_has_bits;
 
   cached_has_bits = this_._impl_._has_bits_[0];
-  // int32 msgid = 1;
-  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-    if (this_._internal_msgid() != 0) {
-      target =
-          ::google::protobuf::internal::WireFormatLite::WriteInt32ToArrayWithField<1>(
-              stream, this_._internal_msgid(), target);
+  // string msgid = 1;
+  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+    if (!this_._internal_msgid().empty()) {
+      const ::std::string& _s = this_._internal_msgid();
+      ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+          _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.TextChatData.msgid");
+      target = stream->WriteStringMaybeAliased(1, _s, target);
     }
   }
 
   // string msgcontext = 2;
-  if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+  if (CheckHasBit(cached_has_bits, 0x00000002U)) {
     if (!this_._internal_msgcontext().empty()) {
       const ::std::string& _s = this_._internal_msgcontext();
       ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
@@ -6205,18 +6214,18 @@ PROTOBUF_NOINLINE void TextChatData::Clear() {
   ::_pbi::Prefetch5LinesFrom7Lines(&this_);
   cached_has_bits = this_._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
-    // string msgcontext = 2;
+    // string msgid = 1;
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!this_._internal_msgid().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                        this_._internal_msgid());
+      }
+    }
+    // string msgcontext = 2;
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!this_._internal_msgcontext().empty()) {
         total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                         this_._internal_msgcontext());
-      }
-    }
-    // int32 msgid = 1;
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (this_._internal_msgid() != 0) {
-        total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
-            this_._internal_msgid());
       }
     }
   }
@@ -6240,17 +6249,21 @@ void TextChatData::MergeImpl(::google::protobuf::MessageLite& to_msg,
   cached_has_bits = from._impl_._has_bits_[0];
   if (BatchCheckHasBit(cached_has_bits, 0x00000003U)) {
     if (CheckHasBit(cached_has_bits, 0x00000001U)) {
+      if (!from._internal_msgid().empty()) {
+        _this->_internal_set_msgid(from._internal_msgid());
+      } else {
+        if (_this->_impl_.msgid_.IsDefault()) {
+          _this->_internal_set_msgid("");
+        }
+      }
+    }
+    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
       if (!from._internal_msgcontext().empty()) {
         _this->_internal_set_msgcontext(from._internal_msgcontext());
       } else {
         if (_this->_impl_.msgcontext_.IsDefault()) {
           _this->_internal_set_msgcontext("");
         }
-      }
-    }
-    if (CheckHasBit(cached_has_bits, 0x00000002U)) {
-      if (from._internal_msgid() != 0) {
-        _this->_impl_.msgid_ = from._impl_.msgid_;
       }
     }
   }
@@ -6273,8 +6286,8 @@ void TextChatData::InternalSwap(TextChatData* PROTOBUF_RESTRICT PROTOBUF_NONNULL
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.msgid_, &other->_impl_.msgid_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.msgcontext_, &other->_impl_.msgcontext_, arena);
-  swap(_impl_.msgid_, other->_impl_.msgid_);
 }
 
 ::google::protobuf::Metadata TextChatData::GetMetadata() const {

@@ -28,6 +28,8 @@ using message::ChatService;
 using message::TextChatMsgReq;
 using message::TextChatMsgRsp;
 using message::TextChatData;
+using message::KickUserReq;
+using message::KickUserRsp;
 
 class ChatGrpcClient :public Singleton<ChatGrpcClient>
 {
@@ -40,6 +42,7 @@ public:
     AuthFriendRsp AuthFriend(std::string server_ip, const AuthFriendReq& req);
     bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
     TextChatMsgRsp TextChatMsg(std::string server_ip, const TextChatMsgReq& req, const Json::Value& rtvalue);
+	KickUserRsp KickUser(std::string server_ip, const KickUserReq& req);
 private:
     ChatGrpcClient();
     std::unordered_map<std::string, std::unique_ptr<RpcConnectionPool<ChatService>>> _pools;

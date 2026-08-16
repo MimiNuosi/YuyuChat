@@ -18,7 +18,6 @@ class ChatDialog : public QDialog
 public:
     explicit ChatDialog(QWidget *parent = nullptr);
     ~ChatDialog();
-    void addChatUserList();
     void AddLBGroup(StateWidget *lb);
     void ClearLabelState(StateWidget *lb);
     void SetSelectChatItem(int uid = 0);

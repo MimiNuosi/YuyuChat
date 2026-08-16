@@ -8,7 +8,6 @@ _current_slot(0)
 {
 	_time_wheel.resize(HEART_BEAT_THRESHOLD);
 	std::cout << "Start server " << "\n";
-	StartAccept();
 }
 
 Server::~Server()
@@ -56,24 +55,33 @@ void Server::on_timer(const boost::system::error_code& ec)
 
 		}
 	}
-	_timer.async_wait([this](boost::system::error_code e) {
-		on_timer(e);
+
+	_timer.expires_after(std::chrono::seconds(1));
+
+	auto self = shared_from_this();
+	_timer.async_wait([self](boost::system::error_code e) {
+		self->on_timer(e);
 		});
 }
 
 void Server::UpdateHeartBeat(std::shared_ptr<Session> session)
 {
 	std::lock_guard<std::shared_mutex> lock(_mutex);
-	int target_slot = (_current_slot + HEART_BEAT_THRESHOLD - 1) % HEART_BEAT_THRESHOLD;
+	int target_slot = (_current_slot + HEART_BEAT_THRESHOLD) % HEART_BEAT_THRESHOLD;
 	_time_wheel[target_slot].push_back(session);
 }
 
-void Server::StartAccept()
+void Server::Start()
 {
 	auto self = shared_from_this();
 	_timer.async_wait([self](boost::system::error_code e) {
 		self->on_timer(e);
 		});
+
+	StartAccept();
+}
+void Server::StartAccept()
+{
 	auto& ioc = AsioIOContextPool::GetInstance()->GetIOContext();
 	auto new_session = std::make_shared<Session>(ioc, this);
 	_acceptor.async_accept(new_session->GetSocket(),
@@ -85,13 +93,16 @@ void Server::StartAccept()
 void Server::HandleAccept(std::shared_ptr<Session> new_session, const boost::system::error_code& ec)
 {
 	if (!ec) {
-		std::lock_guard<std::shared_mutex> lock(_mutex);
+		{
+			std::lock_guard<std::shared_mutex> lock(_mutex);
+			_sessions.insert({ new_session->GetSessionId(),new_session });
+		}
 		new_session->Start();
-		_sessions.insert({ new_session->GetSessionId(),new_session });
 	}
 	else {
 		std::cerr << "Accept Error: " << ec.message() << std::endl;
 	}
+	StartAccept();
 }
 
 void Server::Stop() {

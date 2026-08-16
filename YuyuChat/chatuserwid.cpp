@@ -6,6 +6,7 @@ ChatUserWid::ChatUserWid(QWidget *parent)
     , ui(new Ui::ChatUserWid)
 {
     ui->setupUi(this);
+    SetItemType(ListItemType::CHAT_USER_ITEM);
 }
 
 ChatUserWid::~ChatUserWid()
@@ -19,6 +20,8 @@ QSize ChatUserWid::sizeHint() const  {
 
 void ChatUserWid::SetInfo(std::shared_ptr<UserInfo> user_info)
 {
+    _user_info = user_info;
+
     // 加载图片
     QPixmap pixmap(user_info->_icon);
 

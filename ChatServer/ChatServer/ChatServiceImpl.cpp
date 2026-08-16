@@ -105,16 +105,16 @@ Status ChatServiceImpl::TextChatMsg(ServerContext* context, const TextChatMsgReq
     //在内存中则直接发送通知对方
     Json::Value  rtvalue;
     rtvalue["error"] = ErrorCodes::Success;
-    rtvalue["applyuid"] = request->fromuid();
+    rtvalue["fromuid"] = request->fromuid();
     rtvalue["touid"] = request->touid();
 	Json::Value text_array;
     for (const auto& text : request->textmsgs()) {
 		Json::Value element;
 		element["msgid"] = text.msgid();
-		element["msgcontext"] = text.msgcontext();
+		element["content"] = text.msgcontext();
         text_array.append(element);
     }
-	rtvalue["text array"] = text_array;
+	rtvalue["text_array"] = text_array;
 
     std::string return_str = rtvalue.toStyledString();
 
@@ -166,4 +166,34 @@ bool ChatServiceImpl::GetBaseInfo(std::string base_key, int uid, std::shared_ptr
     }
     std::cout << "[追踪] GetBaseInfo 执行完毕，成功返回" << std::endl;
     return true;
+}
+
+Status ChatServiceImpl::KickUser(ServerContext* context, const KickUserReq* request, KickUserRsp* response)
+{
+	auto uid = request->uid();
+	auto session = UserManager::GetInstance()->GetSession(uid);
+
+    Defer defer([request, response]() {
+        response->set_error(ErrorCodes::Success);
+        response->set_uid(request->uid());
+		});
+
+	//用户不在内存中则直接返回
+    if (session == nullptr) {
+        return Status::OK;
+    }
+
+	//在内存中则直接发送通知对方
+    session->Offline(uid);
+
+    if (session->GetServer()) {
+        session->GetServer()->ClearSession(session->GetSessionId());
+    }
+
+    return Status::OK;
+}
+
+void ChatServiceImpl::RegisterServer(std::shared_ptr<Server> pServer)
+{
+    _p_server = pServer;
 }

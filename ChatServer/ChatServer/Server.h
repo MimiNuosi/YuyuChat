@@ -20,6 +20,7 @@ public:
 	void on_timer(const boost::system::error_code& ec);
 	void UpdateHeartBeat(std::shared_ptr<Session> session);
 	void Stop();
+	void Start();
 private:
 	void StartAccept();
 	void HandleAccept(std::shared_ptr<Session> new_session, const boost::system::error_code& ec);

@@ -1,6 +1,8 @@
 #include "AsioIOContextPool.h"
 
-AsioIOContextPool::~AsioIOContextPool() {}
+AsioIOContextPool::~AsioIOContextPool() {
+	Stop();
+}
 
 AsioIOContextPool::AsioIOContextPool(std::size_t size)
 	:_nextIOContext(0)

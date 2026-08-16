@@ -6,7 +6,7 @@
 #include "Server.h"
 #include "ConfigManager.h"
 #include "RedisManager.h"      // 新增 Redis 头文件
-#include "ChatServiceImpl.h"   // 新增 gRPC 服务实现头文件 (你需要确保有这个类)
+#include "ChatServiceImpl.h"   // 新增 gRPC 服务实现头文件
 #include <grpcpp/grpcpp.h>     // 新增 gRPC 基础头文件
 
 bool bstop = false;
@@ -45,6 +45,16 @@ int main(void) {
             server->Wait();
             });
 
+        // Defer 都会在离开作用域时，严格保证回收 gRPC 线程
+        Defer defer_grpc_thread([&grpc_server_thread, &server]() {
+            if (server) {
+                server->Shutdown(); // 先唤醒阻塞的 Wait
+            }
+            if (grpc_server_thread.joinable()) {
+                grpc_server_thread.join(); // 再安全回收线程
+            }
+            });
+
         // 5. 准备 TCP 服务的事件循环与信号监听
         boost::asio::io_context ioc;
         boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
@@ -52,19 +62,17 @@ int main(void) {
         // 6. 启动 TCP 监听
         auto port = config["SelfServer"]["Port"];
         auto s = std::make_shared<Server>(ioc, atoi(port.c_str()));
+        s->Start();
 
         // 当收到关闭信号时，同时关掉 TCP 和 gRPC 服务
         signals.async_wait([&ioc, &pool, &s, &server](auto, auto) {
-            s.Stop();
+            s->Stop();
             pool->Stop();
             server->Shutdown();
             });
 
         // 主线程将阻塞在这里，直到收到关闭信号
         ioc.run();
-
-        // 7. 优雅退出后的清理工作
-        grpc_server_thread.join(); // 阻塞等待 gRPC 线程彻底安全结束
     }
     catch (const std::exception& e)
     {
