@@ -243,6 +243,55 @@ void UserManager::AppendFriendChatMsg(int friend_uid, std::vector<std::shared_pt
     return;
 }
 
+int UserManager::GetLastChatThreadId()
+{
+    return _last_chat_thread_id;
+}
+
+void UserManager::SetLastChatThreadId(int id)
+{
+    _last_chat_thread_id = id;
+}
+
+void UserManager::AddChatThreadData(std::shared_ptr<ChatThreadData> chat_thread_data, int other_uid)
+{
+    _chat_map[chat_thread_data->GetThreadId()] = chat_thread_data;
+    _uid_to_thread_id[other_uid] = chat_thread_data->GetThreadId();
+}
+
+int UserManager::GetThreadIdByUid(int uid)
+{
+    auto iter = _uid_to_thread_id.find(uid);
+    if(iter == _uid_to_thread_id.end()){
+        return -1;
+    }
+
+    return iter.value();
+}
+
+std::shared_ptr<ChatThreadData> UserManager::GetChatThreadByThreadId(int thread_id)
+{
+    auto find_iter = _chat_map.find(thread_id);
+    if (find_iter != _chat_map.end()) {
+        return find_iter.value();
+    }
+    return nullptr;
+}
+
+std::shared_ptr<ChatThreadData> UserManager::GetChatThreadByUid(int uid) {
+    auto iter = _uid_to_thread_id.find(uid);
+    if (iter == _uid_to_thread_id.end()) {
+        return nullptr;
+    }
+
+    auto chat_iter = _chat_map.find(iter.value());
+    if(chat_iter == _chat_map.end()) {
+        return nullptr;
+    }
+
+    return chat_iter.value();
+}
+
 UserManager::UserManager():_user_info(nullptr),_chat_loaded(0),_contact_loaded(0)
 {
 

@@ -19,6 +19,7 @@ using grpc::Status;
 using grpc::ClientContext;
 using message::AddFriendReq;
 using message::AddFriendRsp;
+using message::AddFriendMsg;
 using message::AuthFriendReq;
 using message::AuthFriendRsp;
 using message::GetChatServerRsp;

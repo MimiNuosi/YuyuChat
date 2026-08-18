@@ -81,6 +81,16 @@ Status ChatServiceImpl::AuthFriend(ServerContext* context, const AuthFriendReq* 
 		rtvalue["error"] = ErrorCodes::UidInvalid;
     }
 
+    for (auto& msg : request->textmsgs()) {
+        Json::Value  chat;
+        chat["sender"] = msg.sender_id();
+        chat["msg_id"] = msg.msg_id();
+        chat["thread_id"] = msg.thread_id();
+        chat["unique_id"] = msg.unique_id();
+        chat["msg_content"] = msg.msgcontent();
+        rtvalue["chat_datas"].append(chat);
+    }
+
     std::string return_str = rtvalue.toStyledString();
 
     session->Send(return_str, ID_NOTIFY_AUTH_FRIEND_REQ);

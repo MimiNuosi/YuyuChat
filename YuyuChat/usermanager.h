@@ -41,6 +41,12 @@ public:
     bool IsLoadConFin();
     std::shared_ptr<UserInfo> GetUserInfo();
     void AppendFriendChatMsg(int friend_uid,std::vector<std::shared_ptr<TextChatData>>);
+    int GetLastChatThreadId();
+    void SetLastChatThreadId(int id);
+    void AddChatThreadData(std::shared_ptr<ChatThreadData> chat_thread_data, int other_uid);
+    int GetThreadIdByUid(int uid);
+    std::shared_ptr<ChatThreadData> GetChatThreadByThreadId(int thread_id);
+    std::shared_ptr<ChatThreadData> GetChatThreadByUid(int uid);
 private:
     UserManager();
     QString _token;
@@ -50,6 +56,9 @@ private:
     std::vector<std::shared_ptr<UserInfo>> _friend_list;
     int _chat_loaded;
     int _contact_loaded;
+    QMap<int, std::shared_ptr<ChatThreadData>> _chat_map;
+    int _last_chat_thread_id;
+    QMap<int,int> _uid_to_thread_id;
 };
 
 #endif // USERMANAGER_H

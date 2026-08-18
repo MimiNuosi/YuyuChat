@@ -27,6 +27,7 @@ private:
     quint16 _message_len;
     QMap<ReqID,std::function<void(ReqID id,int len,QByteArray data)>> _handlers;
     QTimer* _heart_timer;
+
 public slots:
     void slot_tcp_connect(ServerInfo);
     void slot_send_data(ReqID id,QByteArray data);
@@ -39,10 +40,11 @@ signals:
     void sig_friend_apply(std::shared_ptr<AddFriendApply>);
     void sig_auth_rsp(std::shared_ptr<AuthRsp>);
     void sig_add_auth_friend(std::shared_ptr<AuthInfo>);
-    void sig_text_chat_msg(std::shared_ptr<TextChatMsg>);
+    void sig_text_chat_msg(std::vector<std::shared_ptr<TextChatData>>);
     void sig_notify_offline();
     void sig_connection_close();
     void sig_load_chat_thread(bool load_more, int last_thread_id,std::vector<std::shared_ptr<ChatThreadInfo>> chat_threads);
+    void sig_create_private_chat(int uid, int other_id, int thread_id);
 };
 
 #endif // TCPMANAGER_H

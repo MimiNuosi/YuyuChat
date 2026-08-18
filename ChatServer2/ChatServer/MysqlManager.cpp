@@ -30,9 +30,10 @@ std::shared_ptr<UserInfo> MysqlManager::GetUser(std::string name)
     return _dao.GetUser(name);
 }
 
-bool MysqlManager::AddFriend(const int& from, const int& to)
+bool MysqlManager::AddFriend(const int& from, const int& to,
+    const std::string& desc, const std::string& back_name)
 {
-	return _dao.AddFriend(from,to);
+    return _dao.AddFriend(from, to, desc, back_name);
 }
 
 bool MysqlManager::GetApplyList(int uid, std::vector<std::shared_ptr<ApplyInfo>>& applyList, int begin, int limit) {
@@ -44,15 +45,18 @@ bool MysqlManager::GetFriendList(int to_uid, std::vector<std::shared_ptr<UserInf
     return _dao.GetFriendList(to_uid,friend_list);
 }
 
-bool MysqlManager::AuthFriend(const int& from, const int& to, std::string& backname)
+bool MysqlManager::AuthFriend(const int& from, const int& to, std::string backname, std::vector<std::shared_ptr<AddFriendMsg>>& chat_datas)
 {
-    return _dao.AuthFriend(from, to, backname);
+    return _dao.AuthFriend(from, to, backname, chat_datas);
 }
 
-bool MysqlManager::GetUserThreads(int64_t userId, int64_t lastId, int pageSize,
-    std::vector<std::shared_ptr<ChatThreadInfo>>& threads,
+bool MysqlManager::GetUserThreads(int64_t userId, int64_t lastId, int pageSize, std::vector<std::shared_ptr<ChatThreadInfo>>& threads,
     bool& loadMore, int64_t& nextLastId) {
 	return _dao.GetUserThreads(userId, lastId, pageSize, threads, loadMore, nextLastId);
+}
+
+bool MysqlManager::CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& threadId) {
+	return _dao.CreatePrivateThread(user1Id, user2Id, threadId);
 }
 
 MysqlManager::MysqlManager() 

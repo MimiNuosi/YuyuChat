@@ -1,5 +1,8 @@
 #pragma once
 #include"MySqlPool.h"
+#include "message.grpc.pb.h"
+
+using message::AddFriendMsg;
 
 struct UserInfo {
     UserInfo() :name(""), password(""), uid(0), email(""), nick(""), desc(""), sex(0)
@@ -58,15 +61,14 @@ public:
     bool CheckEmail(const std::string& name, const std::string& email);
     bool UpdatePwd(const std::string& name, const std::string& newpwd);
     bool CheckPwd(const std::string& name, const std::string& pwd, UserInfo& userInfo);
-	bool AddFriend(const int& from, const int& to);
+	bool AddFriend(const int& from, const int& to, const std::string& desc, const std::string& back_name);
     std::shared_ptr<UserInfo> GetUser(int uid);
     std::shared_ptr<UserInfo> GetUser(std::string name);
 	bool GetApplyList(int uid, std::vector<std::shared_ptr<ApplyInfo>>& applyList, int begin, int limit);
 	bool GetFriendList(int to_uid, std::vector<std::shared_ptr<UserInfo>>& friend_list);
-    bool AuthFriend(const int& from, const int& to, std::string& backname);
-    bool GetUserThreads(int64_t userId, int64_t lastId, int pageSize,
-        std::vector<std::shared_ptr<ChatThreadInfo>>& threads,
-        bool& loadMore, int64_t& nextLastId);
+    bool AuthFriend(const int& from, const int& to, std::string back_name, std::vector<std::shared_ptr<AddFriendMsg>>& chat_datas);
+    bool GetUserThreads(int64_t userId, int64_t lastId, int pageSize, std::vector<std::shared_ptr<ChatThreadInfo>>& threads, bool& loadMore, int64_t& nextLastId);
+	bool CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& threadId);
 private:
     std::unique_ptr<MySqlPool> pool_;
 };

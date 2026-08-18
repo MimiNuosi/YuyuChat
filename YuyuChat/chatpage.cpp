@@ -35,14 +35,14 @@ void ChatPage::AppendChatMsg(std::shared_ptr<TextChatData> msg)
 {
     auto self_info = UserManager::GetInstance()->GetUserInfo();
     ChatRole role;
-    if (msg->_from_uid == self_info->_uid) {
+    if (msg->GetSendUid() == self_info->_uid) {
         role = ChatRole::Self;
         ChatItemBase* pChatItem = new ChatItemBase(role);
 
         pChatItem->setUserName(self_info->_name);
         pChatItem->setUserIcon(QPixmap(self_info->_icon));
         QWidget* pBubble = nullptr;
-        pBubble = new TextBubble(role, msg->_msg_content);
+        pBubble = new TextBubble(role, msg->GetMsgContent());
 
         pChatItem->setWidget(pBubble);
         ui->chat_data_list->appendChatItem(pChatItem);
@@ -50,14 +50,14 @@ void ChatPage::AppendChatMsg(std::shared_ptr<TextChatData> msg)
     else {
         role = ChatRole::Other;
         ChatItemBase* pChatItem = new ChatItemBase(role);
-        auto friend_info = UserManager::GetInstance()->GetFriendById(msg->_from_uid);
+        auto friend_info = UserManager::GetInstance()->GetFriendById(msg->GetSendUid());
         if (friend_info == nullptr) {
             return;
         }
         pChatItem->setUserName(friend_info->_name);
         pChatItem->setUserIcon(QPixmap(friend_info->_icon));
         QWidget* pBubble = nullptr;
-        pBubble = new TextBubble(role, msg->_msg_content);
+        pBubble = new TextBubble(role, msg->GetMsgContent());
         pChatItem->setWidget(pBubble);
         ui->chat_data_list->appendChatItem(pChatItem);
     }
@@ -89,6 +89,8 @@ void ChatPage::on_send_button_clicked()
     QJsonObject textObj;
     QJsonArray textArray;
 
+    auto thread_id = UserManager::GetInstance()->GetThreadIdByUid(_user_info->_uid);
+
     for (int i = 0; i < msgList.size(); ++i)
     {
         QString type = msgList[i].msgFlag;
@@ -107,8 +109,8 @@ void ChatPage::on_send_button_clicked()
             textArray.append(obj);
 
             auto txt_msg = std::make_shared<TextChatData>(
-                uuidString, clean_content,
-                self_info->_uid, _user_info->_uid
+                uuidString, thread_id, ChatFormType::PRIVATE,
+                ChatMsgType::TEXT, clean_content, self_info->_uid, 0
                 );
 
             emit sig_append_send_chat_msg(txt_msg);

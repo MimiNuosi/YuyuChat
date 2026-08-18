@@ -46,6 +46,8 @@ enum ReqID{
     ID_HEART_BEAT_RSP = 1024,       //心跳回复
     ID_LOAD_CHAT_THREAD_REQ = 1025,      //加载聊天线程
     ID_LOAD_CHAT_THREAD_RSP = 1026,      //加载聊天线程回复
+    ID_CREATE_PRIVATE_CHAT_REQ = 1027,  //创建聊天线程请求
+    ID_CREATE_PRIVATE_CHAT_RSP = 1028,  //创建聊天线程回复
 };
 
 enum TipErr{

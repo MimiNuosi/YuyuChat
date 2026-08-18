@@ -242,9 +242,22 @@ void TcpManager::initHandlers()
         QString nick = jsonObj["nick"].toString();
         int sex = jsonObj["sex"].toInt();
 
+        std::vector<std::shared_ptr<TextChatData>> chat_datas;
+        for (const QJsonValue& data : jsonObj["chat_datas"].toArray()) {
+            auto send_uid = data["sender"].toInt();
+            auto msg_id = data["msg_id"].toInt();
+            auto thread_id = data["thread_id"].toInt();
+            auto unique_id = data["unique_id"].toInt();
+            auto msg_content = data["msg_content"].toString();
+            auto chat_data = std::make_shared<TextChatData>(msg_id, thread_id, ChatFormType::PRIVATE,
+                                                            ChatMsgType::TEXT, msg_content, send_uid,0,"");
+            chat_datas.push_back(chat_data);
+        }
+
         auto rsp = std::make_shared<AuthRsp>(
             from_uid, name, nick,
             icon, sex);
+        rsp->SetChatDatas(chat_datas);
         emit sig_auth_rsp(rsp);
     });
 
@@ -273,9 +286,23 @@ void TcpManager::initHandlers()
         QString nick = jsonObj["nick"].toString();
         int sex = jsonObj["sex"].toInt();
 
+        std::vector<std::shared_ptr<TextChatData>> chat_datas;
+        for (const QJsonValue& data : jsonObj["chat_datas"].toArray()) {
+            auto send_uid = data["sender"].toInt();
+            auto msg_id = data["msg_id"].toInt();
+            auto thread_id = data["thread_id"].toInt();
+            auto unique_id = data["unique_id"].toInt();
+            auto msg_content = data["msg_content"].toString();
+            auto chat_data = std::make_shared<TextChatData>(msg_id, thread_id, ChatFormType::PRIVATE,
+                                                            ChatMsgType::TEXT, msg_content, send_uid, 0 , "");
+            chat_datas.push_back(chat_data);
+        }
+
         auto apply_info = std::make_shared<AuthInfo>(
             from_uid, name, nick,
             icon, sex);
+        apply_info->SetChatDatas(chat_datas);
+
         emit sig_add_auth_friend(apply_info);
     });
 
@@ -317,8 +344,23 @@ void TcpManager::initHandlers()
             qDebug() << "Notify Recvice Text Msg Failed, err is " << err ;
             return;
         }
-        auto msg = std::make_shared<TextChatMsg>(jsonObj["fromuid"].toInt(),jsonObj["touid"].toInt(),jsonObj["text_array"].toArray());
-        emit sig_text_chat_msg(msg);
+
+        auto thread_id = jsonObj["thread_id"].toInt();
+        auto sender = jsonObj["fromuid"].toInt();
+
+
+        std::vector<std::shared_ptr<TextChatData>> chat_datas;
+        for (const QJsonValue& data : jsonObj["chat_datas"].toArray()) {
+            auto msg_id = data["message_id"].toInt();
+            auto unique_id = data["unique_id"].toString();
+            auto msg_content = data["content"].toString();
+            QString chat_time = data["chat_time"].toString();
+            int status = data["status"].toInt();
+            auto chat_data = std::make_shared<TextChatData>(msg_id, unique_id, thread_id, ChatFormType::PRIVATE,
+                                                            ChatMsgType::TEXT, msg_content, sender, status, chat_time);
+            chat_datas.push_back(chat_data);
+        }
+        emit sig_text_chat_msg(chat_datas);
     });
 
     _handlers.insert(ID_NOTIFY_OFF_LINE_REQ,[this](ReqID id, int len, QByteArray data){
@@ -425,6 +467,42 @@ void TcpManager::initHandlers()
         qint64 next_last_id = jsonObj["next_last_id"].toVariant().toLongLong();
         //发送信号通知界面
         emit sig_load_chat_thread(load_more, next_last_id, chat_threads);
+    });
+
+    _handlers.insert(ID_CREATE_PRIVATE_CHAT_RSP, [this](ReqID id, int len, QByteArray data) {
+        Q_UNUSED(len);
+        qDebug() << "handle id is " << id << " data is " << data;
+        // 将QByteArray转换为QJsonDocument
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        // 检查转换是否成功
+        if (jsonDoc.isNull()) {
+            qDebug() << "Failed to create QJsonDocument.";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        if (!jsonObj.contains("error")) {
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "parse create private chat json parse failed " << err;
+            return;
+        }
+
+        int err = jsonObj["error"].toInt();
+        if (err != ErrorCodes::SUCCESS) {
+            qDebug() << "get create private chat failed, error is " << err;
+            return;
+        }
+
+        qDebug() << "Receive create private chat rsp Success";
+
+        int uid = jsonObj["uid"].toInt();
+        int other_id = jsonObj["other_id"].toInt();
+        int thread_id = jsonObj["thread_id"].toInt();
+
+        //发送信号通知界面
+        emit sig_create_private_chat(uid, other_id, thread_id);
     });
 }
 

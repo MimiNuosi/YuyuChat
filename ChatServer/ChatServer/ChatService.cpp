@@ -379,8 +379,8 @@ void AddFriendHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     reader.parse(msg_data, root);
 
     auto uid = root["uid"].asInt();
-	auto applyname = root["applyname"].asString();
 	auto backname = root["backname"].asString();
+    auto desc = root["applyname"].asString();
 	auto touid = root["touid"].asInt();
 
     Json::Value rtvalue;
@@ -391,7 +391,7 @@ void AddFriendHandler(std::shared_ptr<Session> session, short msg_id, std::strin
         session->Send(return_str, ID_ADD_FRIEND_RSP);
         });
 
-	MysqlManager::GetInstance()->AddFriend(uid,touid);
+    MysqlManager::GetInstance()->AddFriend(uid, touid, desc, backname);
 
     auto base_key = USER_BASE_INFO + std::to_string(uid);
     std::shared_ptr<UserInfo> apply_info = std::make_shared<UserInfo>();
@@ -404,6 +404,7 @@ void AddFriendHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     if (!b_ip) {
         return;
     }
+
     auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
     if (server_name == to_ip_value) {
 		auto target_session = UserManager::GetInstance()->GetSession(touid);
@@ -411,8 +412,8 @@ void AddFriendHandler(std::shared_ptr<Session> session, short msg_id, std::strin
             Json::Value  notify;
             notify["error"] = ErrorCodes::Success;
             notify["applyuid"] = uid;
-            notify["name"] = applyname;
-            notify["desc"] = "";
+            notify["name"] = apply_info->name;
+            notify["desc"] = desc;
             if (b_info) {
                 notify["icon"] = apply_info->icon;
 				notify["sex"] = apply_info->sex;
@@ -426,8 +427,8 @@ void AddFriendHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     AddFriendReq add_req;
     add_req.set_applyuid(uid);
     add_req.set_touid(touid);
-    add_req.set_name(applyname);
-    add_req.set_desc("");
+    add_req.set_name(apply_info->name);
+    add_req.set_desc(desc);
     if (b_info) {
         add_req.set_icon(apply_info->icon);
         add_req.set_sex(apply_info->sex);
@@ -468,7 +469,9 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
         session->Send(return_str, ID_AUTH_FRIEND_RSP);
         });
 
-    MysqlManager::GetInstance()->AuthFriend(uid, touid,backname);
+    std::vector<std::shared_ptr<AddFriendMsg>> chat_msgs;
+
+    MysqlManager::GetInstance()->AuthFriend(uid, touid,backname,chat_msgs);
 
     auto to_str = std::to_string(touid);
     auto to_ip_key = USERIPPREFIX + to_str;
@@ -498,6 +501,18 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
             else {
                 notify["error"] = ErrorCodes::UidInvalid;
             }
+
+            for (auto& chat_msg : chat_msgs) {
+                Json::Value chat;
+                chat["sender"] = chat_msg->sender_id();
+                chat["msg_id"] = chat_msg->msg_id();
+                chat["thread_id"] = chat_msg->thread_id();
+                chat["unique_id"] = chat_msg->unique_id();
+                chat["msg_content"] = chat_msg->msgcontent();
+                notify["chat_datas"].append(chat);
+                rtvalue["chat_datas"].append(chat);
+            }
+            
             std::string return_str = notify.toStyledString();
             session->Send(return_str, ID_NOTIFY_AUTH_FRIEND_REQ);
         }
@@ -507,7 +522,17 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
     AuthFriendReq auth_req;
     auth_req.set_fromuid(uid);
     auth_req.set_touid(touid);
-
+    for (auto& chat_msg : chat_msgs) {
+        auto text_msg = auth_req.add_textmsgs();
+        text_msg->CopyFrom(*chat_msg);
+        Json::Value chat;
+        chat["sender"] = chat_msg->sender_id();
+        chat["msg_id"] = chat_msg->msg_id();
+        chat["thread_id"] = chat_msg->thread_id();
+        chat["unique_id"] = chat_msg->unique_id();
+        chat["msg_content"] = chat_msg->msgcontent();
+        rtvalue["chat_datas"].append(chat);
+    }
     ChatGrpcClient::GetInstance()->AuthFriend(to_ip_value, auth_req);
 }
 
@@ -618,6 +643,27 @@ void GetUserThreadsHandler(std::shared_ptr<Session> session, short msg_id, std::
     }
 }
 
+void CreateChatThreadHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+    auto user1_id = root["uid"].asInt64();
+    auto user2_id = root["other_id"].asInt64();
+    Json::Value rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+    Defer defer([&session, &rtvalue]() {
+        session->Send(rtvalue.toStyledString(), ID_CREATE_PRIVATE_CHAT_RSP);
+        });
+    int64_t thread_id = 0;
+    bool res = MysqlManager::GetInstance()->CreatePrivateThread(user1_id, user2_id, thread_id);
+    if (!res) {
+        rtvalue["error"] = ErrorCodes::UidInvalid;
+        return;
+    }
+    rtvalue["thread_id"] = (Json::Int64)thread_id;
+}
+
+REGISTER_CALL_BACK(ID_CREATE_PRIVATE_CHAT_REQ, CreateChatThreadHandler);
 REGISTER_CALL_BACK(ID_LOAD_CHAT_THREAD_REQ, GetUserThreadsHandler);
 REGISTER_CALL_BACK(ID_HEART_BEAT_REQ, HeartBeatHandler)
 REGISTER_CALL_BACK(ID_TEXT_CHAT_MSG_REQ, ChatTextHandler)
