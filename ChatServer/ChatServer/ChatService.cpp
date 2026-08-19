@@ -489,6 +489,9 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
             notify["error"] = ErrorCodes::Success;
             notify["applyuid"] = uid;
             notify["desc"] = "";
+            if (!chat_msgs.empty()) {
+                notify["thread_id"] = (Json::Int64)chat_msgs[0]->thread_id();
+            }
             std::string base_key = USER_BASE_INFO + std::to_string(uid);
             auto user_info = std::make_shared<UserInfo>();
             bool b_info = GetBaseInfo(base_key, uid, user_info);
@@ -651,6 +654,8 @@ void CreateChatThreadHandler(std::shared_ptr<Session> session, short msg_id, std
     auto user2_id = root["other_id"].asInt64();
     Json::Value rtvalue;
     rtvalue["error"] = ErrorCodes::Success;
+    rtvalue["uid"] = (Json::Int64)user1_id;
+    rtvalue["other_id"] = (Json::Int64)user2_id;
     Defer defer([&session, &rtvalue]() {
         session->Send(rtvalue.toStyledString(), ID_CREATE_PRIVATE_CHAT_RSP);
         });

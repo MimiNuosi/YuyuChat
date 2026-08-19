@@ -48,6 +48,8 @@ enum ReqID{
     ID_LOAD_CHAT_THREAD_RSP = 1026,      //加载聊天线程回复
     ID_CREATE_PRIVATE_CHAT_REQ = 1027,  //创建聊天线程请求
     ID_CREATE_PRIVATE_CHAT_RSP = 1028,  //创建聊天线程回复
+    ID_LOAD_CHAT_MSG_REQ = 1029,      //加载聊天消息
+    ID_LOAD_CHAT_MSG_RSP = 1030,      //加载聊天消息
 };
 
 enum TipErr{

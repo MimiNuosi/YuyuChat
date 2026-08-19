@@ -292,6 +292,33 @@ std::shared_ptr<ChatThreadData> UserManager::GetChatThreadByUid(int uid) {
     return chat_iter.value();
 }
 
+std::shared_ptr<ChatThreadData> UserManager::GetCurLoadThreadData()
+{
+    if(_cur_load_chat_index >= _chat_thread_ids.size()){
+        return nullptr;
+    }
+    auto iter = _chat_map.find(_chat_thread_ids[_cur_load_chat_index]);
+    if(iter == _chat_map.end()){
+        return nullptr;
+    }
+    return iter.value();
+}
+
+std::shared_ptr<ChatThreadData> UserManager::GetNextLoadThreadData()
+{
+    _cur_load_chat_index++;
+    if(_cur_load_chat_index >= _chat_thread_ids.size()){
+        return nullptr;
+    }
+    auto iter = _chat_map.find(_chat_thread_ids[_cur_load_chat_index]);
+    if(iter == _chat_map.end()){
+        return nullptr;
+    }
+    return iter.value();
+}
+
+
+
 UserManager::UserManager():_user_info(nullptr),_chat_loaded(0),_contact_loaded(0)
 {
 

@@ -374,8 +374,8 @@ bool MysqlDAO::AuthFriend(const int& from, const int& to, std::string backname,
         {
 			std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement
             ("SELECT back_name, descs FROM friend_apply WHERE from_uid = ? AND to_uid = ?"));
-            pstmt->setInt(1,from);
-			pstmt->setInt(2,to);
+            pstmt->setInt(1,to);
+			pstmt->setInt(2,from);
             std::unique_ptr<sql::ResultSet> rsSel(pstmt->executeQuery());
 
             if (rsSel->next()) {
@@ -427,7 +427,7 @@ bool MysqlDAO::AuthFriend(const int& from, const int& to, std::string backname,
             //反过来的申请时from，验证时to
             pstmt2->setInt(1, to); // from id
             pstmt2->setInt(2, from);
-            pstmt2->setString(3, "");
+            pstmt2->setString(3, reverse_back);
             // 执行更新
             int rowAffected2 = pstmt2->executeUpdate();
             if (rowAffected2 < 0) {
@@ -440,9 +440,8 @@ bool MysqlDAO::AuthFriend(const int& from, const int& to, std::string backname,
         int64_t threadId = 0;
         {
             std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
-				"INSERT INTO chat_thread (type, created_at) VALUES (?, ?);"));
+				"INSERT INTO chat_thread (type, created_at) VALUES (?, NOW());"));
             pstmt->setString(1, "private");
-            pstmt->setString(2, std::to_string(std::time(nullptr)));
             pstmt->executeUpdate();
             std::unique_ptr<sql::PreparedStatement> pstmtLastId(con->_con->prepareStatement(
                 "SELECT LAST_INSERT_ID();"));
@@ -474,10 +473,11 @@ bool MysqlDAO::AuthFriend(const int& from, const int& to, std::string backname,
         if (!apply_desc.empty())
         {
             std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
-                "INSERT INTO chat_message (thread_id,  sender_id, recv_id,  content, created_at, updated_at, status) VALUES (?, ?, ?, ?, NOW()，NOW(),?);"));
+                "INSERT INTO chat_message (thread_id, sender_id, recv_id, content, created_at, updated_at, status) "
+                "VALUES (?, ?, ?, ?, NOW(), NOW(), ?);"));
             pstmt->setInt64(1, threadId);
-            pstmt->setInt64(2, from);
-            pstmt->setInt64(3, to);
+            pstmt->setInt64(2, to);
+            pstmt->setInt64(3, from);
             pstmt->setString(4, apply_desc);
             pstmt->setInt(5, 0);
             int rowAffected = pstmt->executeUpdate();
@@ -540,7 +540,7 @@ bool MysqlDAO::AuthFriend(const int& from, const int& to, std::string backname,
         return true;
     }
     catch(sql::SQLException& e){
-        if (!con) {
+        if (con && con->_con) {
 			con->_con->rollback(); // 回滚事务
         }
         std::cerr << "SQLException: " << e.what();
@@ -625,51 +625,49 @@ bool MysqlDAO::GetUserThreads(int64_t userId, int64_t lastId, int pageSize,
 
 bool MysqlDAO::CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& threadId)
 {
-	auto con = pool_->getConnection();
-	if (!con) return false;
+    auto con = pool_->getConnection();
+    if (!con) return false;
 
-	auto& connect = con->_con;
-	Defer defer([this, &con, &connect]() {
+    auto& connect = con->_con;
+    Defer defer([this, &con, &connect]() {
         if (connect && !connect->isClosed()) {
-			connect->setAutoCommit(true);
+            connect->setAutoCommit(true);
         }
-        pool_->returnConnection(std::move(con)); 
-    });
+        pool_->returnConnection(std::move(con));
+        });
 
     try
     {
-		connect->setAutoCommit(false);
+        connect->setAutoCommit(false);
 
-		int64_t uid1 = std::min(user1Id, user2Id);
-		int64_t uid2 = std::max(user1Id, user2Id);
-        
+        int64_t uid1 = std::min(user1Id, user2Id);
+        int64_t uid2 = std::max(user1Id, user2Id);
+
         std::unique_ptr<sql::PreparedStatement> pstmt(connect->prepareStatement(
-            "SELECT thread_id FROM private_chat"
-            "WHERE user1_id = ? AND user2_id = ? FOR UPDATE;"));
+            "SELECT thread_id FROM private_chat WHERE user1_id = ? AND user2_id = ? FOR UPDATE;"));
         pstmt->setInt64(1, uid1);
         pstmt->setInt64(2, uid2);
-       
+
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
         if (res->next()) {
             threadId = res->getInt64(1);
-			connect->commit();
+            connect->commit();
             return true;
         }
 
         std::unique_ptr<sql::PreparedStatement> insertStmt(connect->prepareStatement(
-			"INSERT INTO chat_thread (type , created_at) VALUES (?, ?);"));
+            "INSERT INTO chat_thread (type, created_at) VALUES (?, NOW());"));
         insertStmt->setString(1, "private");
-        insertStmt->setString(2, std::to_string(std::time(nullptr)));
         insertStmt->executeUpdate();
 
-        std::unique_ptr<sql::PreparedStatement> insertStmt(connect->prepareStatement(
-            "SECELT LAST_INSERT_ID();"));
-		std::unique_ptr<sql::ResultSet> res_last_id(insertStmt->executeQuery());
+        std::unique_ptr<sql::PreparedStatement> selectStmt(connect->prepareStatement(
+            "SELECT LAST_INSERT_ID();"));
+        std::unique_ptr<sql::ResultSet> res_last_id(selectStmt->executeQuery());
         if (res_last_id->next()) {
-			threadId = res_last_id->getInt64(1);
+            threadId = res_last_id->getInt64(1);
         }
         else {
-			connect->rollback();
+            connect->rollback();
             return false;
         }
 
@@ -678,12 +676,12 @@ bool MysqlDAO::CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& th
         insertPrivateStmt->setInt64(1, threadId);
         insertPrivateStmt->setInt64(2, uid1);
         insertPrivateStmt->setInt64(3, uid2);
-		insertPrivateStmt->executeUpdate();
+        insertPrivateStmt->executeUpdate();
 
         connect->commit();
-		return true;
+        return true;
     }
-    catch (const std::exception&e)
+    catch (const std::exception& e)
     {
         std::cerr << "SQLException: " << e.what() << std::endl;
         try {

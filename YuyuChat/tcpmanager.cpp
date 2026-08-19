@@ -285,6 +285,7 @@ void TcpManager::initHandlers()
         QString icon = jsonObj["icon"].toString();
         QString nick = jsonObj["nick"].toString();
         int sex = jsonObj["sex"].toInt();
+        int thread_id = jsonObj.contains("thread_id") ? jsonObj["thread_id"].toInt() : 0;
 
         std::vector<std::shared_ptr<TextChatData>> chat_datas;
         for (const QJsonValue& data : jsonObj["chat_datas"].toArray()) {
@@ -302,6 +303,7 @@ void TcpManager::initHandlers()
             from_uid, name, nick,
             icon, sex);
         apply_info->SetChatDatas(chat_datas);
+        apply_info->_thread_id = thread_id;
 
         emit sig_add_auth_friend(apply_info);
     });
@@ -345,19 +347,25 @@ void TcpManager::initHandlers()
             return;
         }
 
-        auto thread_id = jsonObj["thread_id"].toInt();
         auto sender = jsonObj["fromuid"].toInt();
-
+        auto thread_id = UserManager::GetInstance()->GetThreadIdByUid(sender);
 
         std::vector<std::shared_ptr<TextChatData>> chat_datas;
-        for (const QJsonValue& data : jsonObj["chat_datas"].toArray()) {
-            auto msg_id = data["message_id"].toInt();
-            auto unique_id = data["unique_id"].toString();
-            auto msg_content = data["content"].toString();
-            QString chat_time = data["chat_time"].toString();
-            int status = data["status"].toInt();
-            auto chat_data = std::make_shared<TextChatData>(msg_id, unique_id, thread_id, ChatFormType::PRIVATE,
-                                                            ChatMsgType::TEXT, msg_content, sender, status, chat_time);
+        QJsonArray msgArray = jsonObj.contains("text_array") ? jsonObj["text_array"].toArray() : jsonObj["chat_datas"].toArray();
+
+        for (const QJsonValue& val : msgArray) {
+            QJsonObject obj = val.toObject();
+            auto msg_id = obj.contains("message_id") ? obj["message_id"].toInt() : 0;
+            // 服务端字段为 msgid
+            auto unique_id = obj.contains("msgid") ? obj["msgid"].toString() : obj["unique_id"].toString();
+            auto msg_content = obj["content"].toString();
+            QString chat_time = obj["chat_time"].toString();
+            int status = obj["status"].toInt();
+
+            auto chat_data = std::make_shared<TextChatData>(
+                msg_id, unique_id, thread_id, ChatFormType::PRIVATE,
+                ChatMsgType::TEXT, msg_content, sender, status, chat_time
+                );
             chat_datas.push_back(chat_data);
         }
         emit sig_text_chat_msg(chat_datas);
@@ -503,6 +511,52 @@ void TcpManager::initHandlers()
 
         //发送信号通知界面
         emit sig_create_private_chat(uid, other_id, thread_id);
+    });
+
+    _handlers.insert(ID_LOAD_CHAT_MSG_RSP, [this](ReqID id, int len, QByteArray data) {
+        Q_UNUSED(len);
+        qDebug() << "handle id is " << id << " data is " << data;
+        // 将QByteArray转换为QJsonDocument
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        // 检查转换是否成功
+        if (jsonDoc.isNull()) {
+            qDebug() << "Failed to create QJsonDocument.";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        if (!jsonObj.contains("error")) {
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "load chat msg json parse failed " << err;
+            return;
+        }
+
+        int err = jsonObj["error"].toInt();
+        if (err != ErrorCodes::SUCCESS) {
+            qDebug() << "oad chat msgt failed, error is " << err;
+            return;
+        }
+
+        int thread_id = jsonObj["thread_id"].toInt();
+        int last_msg_id = jsonObj["last_message_id"].toInt();
+        bool load_more = jsonObj["load_more"].toBool();
+
+        std::vector<std::shared_ptr<TextChatData>> chat_datas;
+        for (const QJsonValue& data : jsonObj["chat_datas"].toArray()) {
+            auto send_uid = data["sender"].toInt();
+            auto msg_id = data["msg_id"].toInt();
+            auto thread_id = data["thread_id"].toInt();
+            auto unique_id = data["unique_id"].toInt();
+            auto msg_content = data["msg_content"].toString();
+            QString chat_time = data["chat_time"].toString();
+            auto chat_data = std::make_shared<TextChatData>(msg_id, thread_id, ChatFormType::PRIVATE,
+                                                            ChatMsgType::TEXT, msg_content, send_uid, 0,chat_time);
+            chat_datas.push_back(chat_data);
+        }
+
+        emit sig_load_chat_msg(thread_id, last_msg_id, load_more, chat_datas);
     });
 }
 

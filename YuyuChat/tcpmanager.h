@@ -45,6 +45,7 @@ signals:
     void sig_connection_close();
     void sig_load_chat_thread(bool load_more, int last_thread_id,std::vector<std::shared_ptr<ChatThreadInfo>> chat_threads);
     void sig_create_private_chat(int uid, int other_id, int thread_id);
+    void sig_load_chat_msg(int thread_id, int last_msg_id, bool load_more, std::shared_ptr<TextChatData> chat_data);
 };
 
 #endif // TCPMANAGER_H

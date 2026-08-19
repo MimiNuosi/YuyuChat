@@ -7,6 +7,7 @@ FriendInfoPage::FriendInfoPage(QWidget *parent) :
     ui(new Ui::FriendInfoPage),_user_info(nullptr)
 {
     ui->setupUi(this);
+    connect(ui->msg_chat, &QPushButton::clicked, this, &FriendInfoPage::on_msg_chat_clicked);
 }
 
 FriendInfoPage::~FriendInfoPage()

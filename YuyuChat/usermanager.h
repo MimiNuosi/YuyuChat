@@ -47,6 +47,8 @@ public:
     int GetThreadIdByUid(int uid);
     std::shared_ptr<ChatThreadData> GetChatThreadByThreadId(int thread_id);
     std::shared_ptr<ChatThreadData> GetChatThreadByUid(int uid);
+    std::shared_ptr<ChatThreadData> GetCurLoadThreadData();
+    std::shared_ptr<ChatThreadData> GetNextLoadThreadData();
 private:
     UserManager();
     QString _token;
@@ -57,7 +59,9 @@ private:
     int _chat_loaded;
     int _contact_loaded;
     QMap<int, std::shared_ptr<ChatThreadData>> _chat_map;
+    std::vector<int> _chat_thread_ids;
     int _last_chat_thread_id;
+    int _cur_load_chat_index;
     QMap<int,int> _uid_to_thread_id;
 };
 
