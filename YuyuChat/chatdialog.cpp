@@ -98,6 +98,7 @@ ChatDialog::ChatDialog(QWidget *parent)
     connect(TcpManager::GetInstance().get(), &TcpManager::sig_load_chat_thread, this, &ChatDialog::slot_load_chat_thread);
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_create_private_chat,this,&ChatDialog::slot_create_private_chat);
     connect(TcpManager::GetInstance().get(), &TcpManager::sig_load_chat_msg, this, &ChatDialog::slot_load_chat_msg);
+    connect(TcpManager::GetInstance().get(), &TcpManager::sig_chat_msg_rsp, this, &ChatDialog::slot_add_chat_msg);
 }
 
 ChatDialog::~ChatDialog()
@@ -235,11 +236,9 @@ void ChatDialog::SetSelectChatPage(int thread_id)
         if (con_item) {
             auto thread_data = con_item->GetChatInfo();
             if (thread_data) {
-                // 🌟 通过 other_id 查出对应的 UserInfo 传给聊天界面
-                auto user_info = UserManager::GetInstance()->GetFriendById(thread_data->GetOtherId());
-                if (user_info) {
-                    ui->chat_page->SetUserInfo(user_info);
-                }
+                ui->chat_page->SetChatData(thread_data);
+                _cur_chat_thread_id = thread_data->GetThreadId();
+                _cur_chat_uid = thread_data->GetOtherId();
             }
         }
         return;
@@ -256,10 +255,9 @@ void ChatDialog::SetSelectChatPage(int thread_id)
     if (con_item) {
         auto thread_data = con_item->GetChatInfo();
         if (thread_data) {
-            auto user_info = UserManager::GetInstance()->GetFriendById(thread_data->GetOtherId());
-            if (user_info) {
-                ui->chat_page->SetUserInfo(user_info);
-            }
+            ui->chat_page->SetChatData(thread_data);
+            _cur_chat_thread_id = thread_data->GetThreadId();
+            _cur_chat_uid = thread_data->GetOtherId();
         }
     }
 }
@@ -452,12 +450,9 @@ void ChatDialog::slot_item_clicked(QListWidgetItem *item)
         auto thread_data = chat_wid->GetChatInfo(); // 获取该行绑定的 ChatThreadData
         if (!thread_data) return;
 
-        auto friend_info = UserManager::GetInstance()->GetFriendById(thread_data->GetOtherId());
-        if (friend_info) {
-            ui->chat_page->SetUserInfo(friend_info);
-            _cur_chat_uid = friend_info->_uid;
-            _cur_chat_thread_id = thread_data->GetThreadId();
-        }
+        ui->chat_page->SetChatData(thread_data); //  设置会话数据
+        _cur_chat_uid = thread_data->GetOtherId();
+        _cur_chat_thread_id = thread_data->GetThreadId();
     }
 }
 
@@ -496,6 +491,7 @@ void ChatDialog::slot_text_chat_msg(std::vector<std::shared_ptr<TextChatData>> c
         }
         thread_data->AddMsg(msg);
 
+        //刷新左侧聊天栏，如果是新聊天就新增一个chatuserwid
         auto iter = _chat_thread_items.find(thread_id);
         if (iter != _chat_thread_items.end()) {
             QWidget* widget = ui->chat_user_list->itemWidget(iter.value());
@@ -506,6 +502,7 @@ void ChatDialog::slot_text_chat_msg(std::vector<std::shared_ptr<TextChatData>> c
             }
         }
 
+        //处于当前对话，插入新消息记录
         if ((_cur_chat_thread_id != 0 && _cur_chat_thread_id == thread_id) ||
             (_cur_chat_uid != 0 && _cur_chat_uid == msg->GetSendUid())) {
             ui->chat_page->AppendChatMsg(msg);
@@ -631,7 +628,7 @@ void ChatDialog::slot_load_chat_thread(bool load_more, qint64 last_thread_id, st
         SetSelectChatItem(first_thread_id);
         SetSelectChatPage(first_thread_id);
     }
-
+    loadChatMsg();
 }
 
 void ChatDialog::slot_create_private_chat(int uid, int other_id, int thread_id)
@@ -698,6 +695,34 @@ void ChatDialog::slot_load_chat_msg(int thread_id, int msg_id, bool load_more, s
     emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_LOAD_CHAT_MSG_REQ, jsonData);
     return;
 
+}
+
+void ChatDialog::slot_add_chat_msg(int thread_id, std::vector<std::shared_ptr<TextChatData> > msglists)
+{
+    auto chat_data = UserManager::GetInstance()->GetChatThreadByThreadId(thread_id);
+    if (chat_data == nullptr) {
+        return;
+    }
+
+    // 1. 将消息从未确认池移到已确认池
+    for (auto& msg : msglists) {
+        chat_data->MoveMsg(msg);
+
+        // 2. 如果正好是当前正在浏览的窗口，刷新气泡发送状态
+        if (_cur_chat_thread_id == thread_id) {
+            ui->chat_page->UpdateChatStatus(msg->GetUniqueId(), msg->GetStatus());
+        }
+    }
+
+    // 3. 刷新左侧会话最后一条预览
+    auto iter = _chat_thread_items.find(thread_id);
+    if (iter != _chat_thread_items.end()) {
+        QWidget *widget = ui->chat_user_list->itemWidget(iter.value());
+        auto chat_wid = qobject_cast<ChatUserWid*>(widget);
+        if (chat_wid) {
+            chat_wid->UpdateLastMsg(msglists);
+        }
+    }
 }
 
 void ChatDialog::loadMoreConUser()

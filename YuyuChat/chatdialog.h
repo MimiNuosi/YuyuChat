@@ -20,8 +20,8 @@ public:
     ~ChatDialog();
     void AddLBGroup(StateWidget *lb);
     void ClearLabelState(StateWidget *lb);
-    void SetSelectChatItem(int uid = 0);
-    void SetSelectChatPage(int uid = 0);
+    void SetSelectChatItem(int threadid = 0);
+    void SetSelectChatPage(int threadid = 0);
     void loadChatList();
     void loadChatMsg();
     QListWidgetItem* AddChatUserItem(std::shared_ptr<UserInfo> user_info, int thread_id, bool insert_top);
@@ -67,6 +67,7 @@ public slots:
     void slot_load_chat_thread(bool load_more, qint64 last_thread_id, std::vector<std::shared_ptr<ChatThreadInfo>> chat_threads);
     void slot_create_private_chat(int uid, int other_id, int thread_id);
     void slot_load_chat_msg(int thread_id, int msg_id, bool load_more, std::vector<std::shared_ptr<TextChatData>> msglists);
+    void slot_add_chat_msg(int thread_id, std::vector<std::shared_ptr<TextChatData>> msglists);
 };
 
 #endif // CHATDIALOG_H

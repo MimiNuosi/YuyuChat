@@ -52,6 +52,12 @@ struct ChatMessage {
     int status;
 };
 
+struct PageResult {
+    std::vector<std::shared_ptr<ChatMessage>> messages;
+    bool loadMore;
+    int64_t nextLastId;
+};
+
 class MysqlDAO
 {
 public:
@@ -69,6 +75,8 @@ public:
     bool AuthFriend(const int& from, const int& to, std::string back_name, std::vector<std::shared_ptr<AddFriendMsg>>& chat_datas);
     bool GetUserThreads(int64_t userId, int64_t lastId, int pageSize, std::vector<std::shared_ptr<ChatThreadInfo>>& threads, bool& loadMore, int64_t& nextLastId);
 	bool CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& threadId);
+	std::shared_ptr<PageResult> LoadChatMessages(int64_t threadId, int64_t lastId, int pageSize);
+	bool AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas);
 private:
     std::unique_ptr<MySqlPool> pool_;
 };

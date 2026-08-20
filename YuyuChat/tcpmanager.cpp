@@ -326,6 +326,25 @@ void TcpManager::initHandlers()
             qDebug() << "Recvice Text Msg Failed, err is " << err ;
             return;
         }
+
+        auto thread_id = jsonObj["thread_id"].toInt();
+        auto sender = jsonObj["fromuid"].toInt();
+
+
+        std::vector<std::shared_ptr<TextChatData>> chat_datas;
+        for (const QJsonValue& data : jsonObj["chat_datas"].toArray()) {
+            auto msg_id = data["message_id"].toInt();
+            auto unique_id = data["unique_id"].toString();
+            auto msg_content = data["content"].toString();
+            QString chat_time = data["chat_time"].toString();
+            int status = data["status"].toInt();
+            auto chat_data = std::make_shared<TextChatData>(msg_id,unique_id, thread_id, ChatFormType::PRIVATE,
+                                                            ChatMsgType::TEXT, msg_content, sender, status, chat_time);
+            chat_datas.push_back(chat_data);
+        }
+
+        //发送信号通知界面
+        emit sig_chat_msg_rsp(thread_id, chat_datas);
     });
 
     _handlers.insert(ReqID::ID_NOTIFY_TEXT_CHAT_MSG_REQ,[this](ReqID id,int len,QByteArray data){

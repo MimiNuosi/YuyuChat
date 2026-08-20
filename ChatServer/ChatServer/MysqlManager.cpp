@@ -59,6 +59,14 @@ bool MysqlManager::CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t
 	return _dao.CreatePrivateThread(user1Id, user2Id, threadId);
 }
 
+std::shared_ptr<PageResult> MysqlManager::LoadChatMessages(int64_t threadId, int64_t lastId, int pageSize) {
+	return _dao.LoadChatMessages(threadId, lastId, pageSize);
+}
+
+bool MysqlManager::AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas) {
+    return _dao.AddChatMessage(chat_datas);
+}
+
 MysqlManager::MysqlManager() 
 {
     

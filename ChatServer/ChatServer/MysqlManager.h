@@ -19,6 +19,8 @@ public:
 	bool AuthFriend(const int& from, const int& to, std::string backname, std::vector<std::shared_ptr<AddFriendMsg>>& chat_datas);
     bool GetUserThreads(int64_t userId, int64_t lastId, int pageSize, std::vector<std::shared_ptr<ChatThreadInfo>>& threads,bool& loadMore, int64_t& nextLastId);
 	bool CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& threadId);
+	std::shared_ptr<PageResult> LoadChatMessages(int64_t threadId, int64_t lastId, int pageSize);
+    bool AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas);
 private:
     MysqlManager();
     MysqlDAO  _dao;

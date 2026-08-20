@@ -546,6 +546,8 @@ void ChatTextHandler(std::shared_ptr<Session> session, short msg_id, std::string
     reader.parse(msg_data, root);
     auto uid = root["fromuid"].asInt();
     auto touid = root["touid"].asInt();
+    auto thread_id = root["thread_id"].asInt();
+
     Json::Value text_array = root["text_array"];
 
     Json::Value rtvalue;
@@ -553,11 +555,42 @@ void ChatTextHandler(std::shared_ptr<Session> session, short msg_id, std::string
 	rtvalue["fromuid"] = uid;
 	rtvalue["touid"] = touid;
 	rtvalue["text_array"] = text_array;
+    rtvalue["thread_id"] = thread_id;
     // 无论下面逻辑如何 return，退出时必然发送回包
     Defer defer([&session, &rtvalue]() {
         std::string return_str = rtvalue.toStyledString();
         session->Send(return_str, ID_TEXT_CHAT_MSG_RSP);
         });
+
+    std::vector<std::shared_ptr<ChatMessage>> chat_datas;
+    auto timestamp = getCurrentTimestamp();
+    for (const auto& txt_obj : text_array) {
+        auto content = txt_obj["content"].asString();
+        auto unique_id = txt_obj["unique_id"].asString();
+        std::cout << "content is " << content << std::endl;
+        std::cout << "unique_id is " << unique_id << std::endl;
+        auto chat_msg = std::make_shared<ChatMessage>();
+        chat_msg->chat_time = timestamp;
+        chat_msg->sender_id = uid;
+        chat_msg->recv_id = touid;
+        chat_msg->unique_id = unique_id;
+        chat_msg->thread_id = thread_id;
+        chat_msg->content = content;
+        chat_msg->status = 2;
+        chat_datas.push_back(chat_msg);
+    }
+
+	bool b_save = MysqlManager::GetInstance()->AddChatMessage(chat_datas);
+
+    for (const auto& chat_data : chat_datas) {
+        Json::Value  chat_msg;
+        chat_msg["message_id"] = chat_data->message_id;
+        chat_msg["unique_id"] = chat_data->unique_id;
+        chat_msg["content"] = chat_data->content;
+        chat_msg["status"] = chat_data->status;
+        chat_msg["chat_time"] = chat_data->chat_time;
+        rtvalue["chat_datas"].append(chat_msg);
+    }
 
     auto to_str = std::to_string(touid);
     auto to_ip_key = USERIPPREFIX + to_str;
@@ -582,12 +615,13 @@ void ChatTextHandler(std::shared_ptr<Session> session, short msg_id, std::string
     TextChatMsgReq chat_req;
     chat_req.set_fromuid(uid);
     chat_req.set_touid(touid);
-    for (const auto& text : text_array) {
-		auto content = text["content"].asString();
-		auto msg_id = text["msgid"].asString();
-		auto* text_msg = chat_req.add_textmsgs();
-		text_msg->set_msgcontext(content);
-		text_msg->set_msgid(msg_id);
+	chat_req.set_thread_id(thread_id);
+    for(const auto& chat_data : chat_datas) {
+        auto* text_msg = chat_req.add_textmsgs();
+        text_msg->set_unique_id(chat_data->unique_id);
+        text_msg->set_msgcontent(chat_data->content);
+        text_msg->set_msg_id(chat_data->message_id);
+        text_msg->set_chat_time(chat_data->chat_time);
     }
     ChatGrpcClient::GetInstance()->TextChatMsg(to_ip_value, chat_req,rtvalue);
 }
@@ -669,6 +703,46 @@ void CreateChatThreadHandler(std::shared_ptr<Session> session, short msg_id, std
     rtvalue["thread_id"] = (Json::Int64)thread_id;
 }
 
+void LoadChatMessageHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+    auto thread_id = root["thread_id"].asInt64();
+    auto last_msg_id = root.isMember("last_msg_id") ? root["last_msg_id"].asInt64() : 0; // 首次拉取传 0
+    auto page_size = root.isMember("page_size") ? root["page_size"].asInt() : 20; // 默认一页20条
+
+    Json::Value rtvalue;
+    rtvalue["error"] = ErrorCodes::Success;
+    rtvalue["thread_id"] = (Json::Int64)thread_id;
+
+    Defer defer([&session, &rtvalue]() {
+        session->Send(rtvalue.toStyledString(), ID_LOAD_CHAT_MESSAGE_RSP);
+        });
+
+    bool load_more = false;
+    int64_t next_last_msg_id = 0;
+    // 通过 MysqlManager 调用 DAO 方法
+    std::shared_ptr<PageResult> res = MysqlManager::GetInstance()->LoadChatMessages(thread_id, last_msg_id, page_size);
+    if (!res) {
+        rtvalue["error"] = ErrorCodes::UidInvalid;
+        return;
+    }
+    rtvalue["last_message_id"] = res->nextLastId;
+    rtvalue["load_more"] = res->loadMore;
+    rtvalue["messages"] = Json::arrayValue;
+    for (auto& message : res->messages) {
+        Json::Value  chat_data;
+        chat_data["sender"] = message->sender_id;
+        chat_data["msg_id"] = message->message_id;
+        chat_data["thread_id"] = message->thread_id;
+        chat_data["unique_id"] = 0;
+        chat_data["msg_content"] = message->content;
+        chat_data["chat_time"] = message->chat_time;
+        rtvalue["chat_datas"].append(chat_data);
+    }
+}
+
+REGISTER_CALL_BACK(ID_LOAD_CHAT_MESSAGE_REQ, LoadChatMessageHandler);
 REGISTER_CALL_BACK(ID_CREATE_PRIVATE_CHAT_REQ, CreateChatThreadHandler);
 REGISTER_CALL_BACK(ID_LOAD_CHAT_THREAD_REQ, GetUserThreadsHandler);
 REGISTER_CALL_BACK(ID_HEART_BEAT_REQ, HeartBeatHandler)

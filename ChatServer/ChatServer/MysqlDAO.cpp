@@ -540,7 +540,7 @@ bool MysqlDAO::AuthFriend(const int& from, const int& to, std::string backname,
         return true;
     }
     catch(sql::SQLException& e){
-        if (con && con->_con) {
+        if (con&&con->_con) {
 			con->_con->rollback(); // 回滚事务
         }
         std::cerr << "SQLException: " << e.what();
@@ -690,4 +690,123 @@ bool MysqlDAO::CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& th
         catch (...) {}
         return false;
     }
+}
+
+std::shared_ptr<PageResult> MysqlDAO::LoadChatMessages(int64_t threadId, int64_t lastId, int pageSize)
+{
+	auto con = pool_->getConnection();
+	if (!con) return nullptr;
+	Defer defer([this, &con]() { pool_->returnConnection(std::move(con)); });
+
+	auto& conn = con->_con;
+
+    try {
+		auto pageResult = std::make_shared<PageResult>();
+		pageResult->loadMore = false;
+		pageResult->nextLastId = lastId;
+
+        std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(R"(
+        SELECT message_id, thread_id, sender_id, recv_id, content,
+               created_at, updated_at, status
+        FROM chat_message
+        WHERE thread_id = ?
+          AND message_id > ?
+        ORDER BY message_id ASC
+        LIMIT ?
+        )"));
+
+		auto limit_count = pageSize + 1; // 多查一条用于判断是否还有后续数据
+
+		pstmt->setInt64(1, threadId);
+		pstmt->setInt64(2, lastId);
+		pstmt->setInt(3, limit_count);
+
+		std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+
+        while (true)
+        {
+            ChatMessage msg;
+            msg.message_id = res->getUInt64("message_id");
+            msg.thread_id = res->getUInt64("thread_id");
+            msg.sender_id = res->getUInt64("sender_id");
+            msg.recv_id = res->getUInt64("recv_id");
+            msg.content = res->getString("content");
+            msg.chat_time = res->getString("created_at");
+            msg.status = res->getInt("status");
+			pageResult->messages.push_back(std::make_shared<ChatMessage>(msg));
+        }
+
+        if (pageResult->messages.size() > pageSize) {
+            pageResult->loadMore = true;
+            pageResult->messages.pop_back(); // 剔除多取的那一条
+		}
+		return pageResult;  
+    }
+    catch (const std::exception& e) {
+        std::cerr << "SQLException: " << e.what() << std::endl;
+        return nullptr;
+	}
+	return nullptr;
+}
+
+bool MysqlDAO::AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas)
+{
+    auto con = pool_->getConnection();
+    if (!con) {
+        return false;
+    }
+
+    Defer defer([this, &con]() {
+        pool_->returnConnection(std::move(con));
+        });
+    auto& conn = con->_con;
+
+    try
+    {
+        //关闭自动提交，以手动管理事务
+        conn->setAutoCommit(false);
+        auto pstmt = std::unique_ptr<sql::PreparedStatement>(
+            conn->prepareStatement(
+                "INSERT INTO chat_message "
+                "(thread_id, sender_id, recv_id, content, created_at, updated_at, status) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)"
+            )
+        );
+
+        for (auto& msg : chat_datas) {
+            // 普通字段
+            pstmt->setUInt64(1, msg->thread_id);
+            pstmt->setUInt64(2, msg->sender_id);
+            pstmt->setUInt64(3, msg->recv_id);
+            pstmt->setString(4, msg->content);
+
+            pstmt->setString(5, msg->chat_time);  // created_at
+            pstmt->setString(6, msg->chat_time);  // updated_at
+
+            pstmt->setInt(7, msg->status);
+            pstmt->executeUpdate();
+
+            // 2. 取 LAST_INSERT_ID()
+            std::unique_ptr<sql::Statement> keyStmt(
+                conn->createStatement()
+            );
+            std::unique_ptr<sql::ResultSet> rs(
+                keyStmt->executeQuery("SELECT LAST_INSERT_ID()")
+            );
+            if (rs->next()) {
+                msg->message_id = rs->getUInt64(1);
+            }
+            else {
+                continue;
+            }
+        }
+
+        conn->commit();
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "SQLException: " << e.what() << std::endl;
+    }
+    return false;
 }
