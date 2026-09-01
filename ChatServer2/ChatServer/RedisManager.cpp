@@ -93,33 +93,22 @@ bool RedisManager::releaseLock(const std::string& lockName, const std::string& i
 
 void RedisManager::DecreaseLoginCount(const std::string& serverName)
 {
-    auto lockKey = LOGIN_COUNT;
-	auto identifier = acquireLock(lockKey, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
-    Defer lockDefer([this, lockKey, identifier]() {
-        if (!identifier.empty()) {
-            releaseLock(lockKey, identifier);
-        }
-		});
-
-    if (identifier.empty()) {
-        std::cerr << "Failed to acquire lock for login count during DecreaseLoginCount." << std::endl;
-        return;
-    }
-    std::string countStr = HGet(LOGIN_COUNT, serverName);
-    int count = 0;
-    if (!countStr.empty()) {
-        try {
-            count = std::stoi(countStr);
-        }
-        catch (const std::exception& e) {
-            std::cerr << "Failed to parse login count: " << e.what() << std::endl;
-            return;
+    if (!_redis) return;
+    try {
+        // 先查当前计数，避免减到负数
+        std::string countStr = HGet(LOGIN_COUNT, serverName);
+        if (!countStr.empty()) {
+            int count = std::stoi(countStr);
+            if (count > 0) {
+                // hincrby 原子扣减 1
+                _redis->hincrby(LOGIN_COUNT, serverName, -1);
+                std::cout << "[下线清理] 服务器 " << serverName << " 在线人数 -1" << std::endl;
+            }
         }
     }
-    if (count > 0) {
-        count--;
-        HSet(LOGIN_COUNT, serverName, std::to_string(count));
-	}
+    catch (const std::exception& e) {
+        std::cerr << "DecreaseLoginCount Exception: " << e.what() << std::endl;
+    }
 }
 
 bool RedisManager::Get(const std::string& key, std::string& value) {

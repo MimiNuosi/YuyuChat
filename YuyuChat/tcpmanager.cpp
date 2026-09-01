@@ -9,32 +9,17 @@ void TcpManager::CloseConnection(){
     _socket.close();
 }
 
-TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0)
+TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0),_bytes_sent(0),_pending(false)
 {
-    _heart_timer = new QTimer(this);
-    QObject::connect(_heart_timer, &QTimer::timeout, [&](){
-        // 构造心跳包的 JSON 数据并发送
-        auto user_info = UserManager::GetInstance()->GetUserInfo();
-        if (!user_info) {
-            return; // 还没登录就不发心跳
-        }
+    registerMetaType();
 
-        QJsonObject jsonObj;
-        jsonObj["fromuid"] = user_info->_uid;
-        QJsonDocument doc(jsonObj);
-        QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
-
-        // 触发发送心跳请求
-        emit sig_send_data(ReqID::ID_HEART_BEAT_REQ, jsonData);
-    });
-
-    QObject::connect(&_socket,&QTcpSocket::connected,[&](){
+    QObject::connect(&_socket,&QTcpSocket::connected,this,[&](){
         _heart_timer->start(10000);
-        qDebug()<< "Connected to server" ;
+        qDebug()<< "Connected to server";
         emit sig_con_success(true);
     });
 
-    QObject::connect(&_socket,&QTcpSocket::readyRead,[&](){
+    QObject::connect(&_socket,&QTcpSocket::readyRead,this,[&](){
         _buffer.append(_socket.readAll());
         qDebug() << "[网络日志] 收到数据，当前缓冲区总长度: " << _buffer.size();
 
@@ -71,26 +56,53 @@ TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(
         }
     });
 
-    QObject::connect(&_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), [&](QAbstractSocket::SocketError socketError) {
+    QObject::connect(&_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), this,[&](QAbstractSocket::SocketError socketError) {
         Q_UNUSED(socketError)
         qDebug() << "Error:" << _socket.errorString();
     });
 
-    QObject::connect(&_socket, &QTcpSocket::disconnected, [&]() {
+    QObject::connect(&_socket, &QTcpSocket::disconnected, this, [&]() {
         _heart_timer->stop();
         qDebug() << "Disconnected from server.";
         emit sig_connection_close();
     });
 
     QObject::connect(this, &TcpManager::sig_send_data, this, &TcpManager::slot_send_data);
+
+    QObject::connect(&_socket, &QTcpSocket::bytesWritten, this, [this](qint64 bytes) {
+        //更新发送数据
+        _bytes_sent += bytes;
+        //未发送完整
+        if (_bytes_sent < _current_block.size()) {
+            //继续发送
+            auto data_to_send = _current_block.mid(_bytes_sent);
+            _socket.write(data_to_send);
+            return;
+        }
+
+        //发送完全，则查看队列是否为空
+        if (_send_queue.isEmpty()) {
+            //队列为空，说明已经将所有数据发送完成，将pending设置为false，这样后续要发送数据时可以继续发送
+            _current_block.clear();
+            _pending = false;
+            _bytes_sent = 0;
+            return;
+        }
+
+        //队列不为空，则取出队首元素
+        _current_block = _send_queue.dequeue();
+        _bytes_sent = 0;
+        _pending = true;
+        qint64 w2 = _socket.write(_current_block);
+        qDebug() << "[TcpMgr] Dequeued and write() returned" << w2;
+    });
+
     initHandlers();
-
-
 }
 
 void TcpManager::initHandlers()
 {
-    _handlers.insert(ReqID::ID_CHAT_LOGIN_REP,[this](ReqID id,int len,QByteArray data){
+    _handlers.insert(ReqID::ID_CHAT_LOGIN_RSP,[this](ReqID id,int len,QByteArray data){
         Q_UNUSED(len);
 
         qDebug()<<"handle id is "<< id <<" , data is "<< data;
@@ -562,16 +574,18 @@ void TcpManager::initHandlers()
         int last_msg_id = jsonObj["last_message_id"].toInt();
         bool load_more = jsonObj["load_more"].toBool();
 
+        QJsonArray msgArray = jsonObj.contains("chat_datas") ? jsonObj["chat_datas"].toArray() : jsonObj["messages"].toArray();
+
         std::vector<std::shared_ptr<TextChatData>> chat_datas;
-        for (const QJsonValue& data : jsonObj["chat_datas"].toArray()) {
+        for (const QJsonValue& data : msgArray) {
             auto send_uid = data["sender"].toInt();
             auto msg_id = data["msg_id"].toInt();
             auto thread_id = data["thread_id"].toInt();
-            auto unique_id = data["unique_id"].toInt();
-            auto msg_content = data["msg_content"].toString();
+            auto unique_id = data["unique_id"].toString();
+            QString msg_content = data["msg_content"].toString();
             QString chat_time = data["chat_time"].toString();
-            auto chat_data = std::make_shared<TextChatData>(msg_id, thread_id, ChatFormType::PRIVATE,
-                                                            ChatMsgType::TEXT, msg_content, send_uid, 0,chat_time);
+            auto chat_data = std::make_shared<TextChatData>(msg_id, unique_id, thread_id, ChatFormType::PRIVATE,
+                                                            ChatMsgType::TEXT, msg_content, send_uid, 2,chat_time);
             chat_datas.push_back(chat_data);
         }
 
@@ -591,11 +605,65 @@ void TcpManager::handleMessage(ReqID id, int len, QByteArray data)
     find_iter.value()(id,len,data);
 }
 
-void TcpManager::slot_tcp_connect(ServerInfo si)
+void TcpManager::registerMetaType()
 {
-    _host = si.Host;
-    _port = static_cast<uint16_t>(si.Port.toInt());
-    _socket.connectToHost(_host,_port);
+    // 注册基础枚举与连接配置
+    qRegisterMetaType<ReqID>("ReqID");
+    qRegisterMetaType<ServerInfo>("ServerInfo");
+
+    // 注册自定义数据类型及其智能指针
+    qRegisterMetaType<SearchInfo>("SearchInfo");
+    qRegisterMetaType<std::shared_ptr<SearchInfo>>("std::shared_ptr<SearchInfo>");
+
+    qRegisterMetaType<AddFriendApply>("AddFriendApply");
+    qRegisterMetaType<std::shared_ptr<AddFriendApply>>("std::shared_ptr<AddFriendApply>");
+
+    qRegisterMetaType<ApplyInfo>("ApplyInfo");
+    qRegisterMetaType<std::shared_ptr<ApplyInfo>>("std::shared_ptr<ApplyInfo>");
+
+    qRegisterMetaType<AuthInfo>("AuthInfo");
+    qRegisterMetaType<std::shared_ptr<AuthInfo>>("std::shared_ptr<AuthInfo>");
+
+    qRegisterMetaType<AuthRsp>("AuthRsp");
+    qRegisterMetaType<std::shared_ptr<AuthRsp>>("std::shared_ptr<AuthRsp>");
+
+    qRegisterMetaType<UserInfo>("UserInfo");
+    qRegisterMetaType<std::shared_ptr<UserInfo>>("std::shared_ptr<UserInfo>");
+
+    qRegisterMetaType<ChatDataBase>("ChatDataBase");
+    qRegisterMetaType<std::shared_ptr<ChatDataBase>>("std::shared_ptr<ChatDataBase>");
+
+    qRegisterMetaType<TextChatData>("TextChatData");
+    qRegisterMetaType<std::shared_ptr<TextChatData>>("std::shared_ptr<TextChatData>");
+
+    qRegisterMetaType<ChatThreadInfo>("ChatThreadInfo");
+    qRegisterMetaType<std::shared_ptr<ChatThreadInfo>>("std::shared_ptr<ChatThreadInfo>");
+
+    qRegisterMetaType<ChatThreadData>("ChatThreadData");
+    qRegisterMetaType<std::shared_ptr<ChatThreadData>>("std::shared_ptr<ChatThreadData>");
+
+    // 注册跨线程信号使用的 vector 集合
+    qRegisterMetaType<std::vector<std::shared_ptr<TextChatData>>>("std::vector<std::shared_ptr<TextChatData>>");
+    qRegisterMetaType<std::vector<std::shared_ptr<ChatThreadInfo>>>("std::vector<std::shared_ptr<ChatThreadInfo>>");
+}
+
+void TcpManager::slot_tcp_connect(std::shared_ptr<ServerInfo> si)
+{
+    if (!_heart_timer) {
+        _heart_timer = new QTimer(this);
+        connect(_heart_timer, &QTimer::timeout, this, [this]() {
+            auto user_info = UserManager::GetInstance()->GetUserInfo();
+            if (!user_info) return;
+
+            QJsonObject jsonObj;
+            jsonObj["fromuid"] = user_info->_uid;
+            QJsonDocument doc(jsonObj);
+            emit sig_send_data(ReqID::ID_HEART_BEAT_REQ, doc.toJson(QJsonDocument::Compact));
+        });
+    }
+    _host = si->_chat_host;
+    _port = static_cast<uint16_t>(si->_chat_port.toUInt());
+    _socket.connectToHost(_host, _port);
     qDebug() << "[网络路由] 准备连接 ChatServer，目标 IP:" << _host << " 目标端口:" << _port;
 }
 
@@ -613,7 +681,29 @@ void TcpManager::slot_send_data(ReqID reqid, QByteArray data)
 
     block.append(data);
 
-    _socket.write(block);
-    qDebug() << "Send data: "<< block;
+    //判断是否正在发送
+        if (_pending) {
+        //放入队列直接返回，因为目前有数据正在发送
+        _send_queue.enqueue(block);
+        return;
+    }
+
+    // 没有正在发送，把这包设为“当前块”，重置计数，并写出去
+    _current_block = block;        // ← 保存当前正在发送的 block
+    _bytes_sent = 0;            // ← 归零
+    _pending = true;         // ← 标记正在发送
+
+    qint64 written = _socket.write(_current_block);
 }
 
+TcpThread::TcpThread()
+{
+    TcpManager::GetInstance()->moveToThread(&_tcp_thread);
+    _tcp_thread.start();
+}
+
+TcpThread::~TcpThread()
+{
+    _tcp_thread.quit();
+    _tcp_thread.wait();
+}

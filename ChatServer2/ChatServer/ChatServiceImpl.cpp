@@ -120,8 +120,8 @@ Status ChatServiceImpl::TextChatMsg(ServerContext* context, const TextChatMsgReq
 	Json::Value text_array;
     for (const auto& text : request->textmsgs()) {
 		Json::Value element;
-		element["msgid"] = text.msgid();
-		element["content"] = text.msgcontext();
+		element["msgid"] = text.msg_id();
+		element["content"] = text.msgcontent();
         text_array.append(element);
     }
 	rtvalue["text_array"] = text_array;

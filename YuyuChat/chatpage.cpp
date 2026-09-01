@@ -41,10 +41,16 @@ void ChatPage::SetChatData(std::shared_ptr<ChatThreadData> chat_data)
     ui->chat_data_list->removeAllItem();
     _unrsp_item_map.clear();
 
-    // 4. 双循环加载：已落库消息 + 未确认落库消息
-    for(auto & msg : chat_data->GetMsgMapRef()){
+    qDebug() << "[UI渲染] 当前会话 thread_id=" << chat_data->GetThreadId()
+             << " 已落库消息数=" << chat_data->GetMsgMapRef().size()
+             << " 待确认消息数=" << chat_data->GetMsgUnRspRef().size();
+
+    //  遍历已落库消息
+    for (auto& msg : chat_data->GetMsgMapRef()) {
+        qDebug() << "[UI渲染] 正在添加气泡: " << msg->GetMsgContent();
         AppendChatMsg(msg);
     }
+    // 遍历待确认消息
     for (auto& msg : chat_data->GetMsgUnRspRef()) {
         AppendChatMsg(msg);
     }
@@ -62,7 +68,7 @@ void ChatPage::AppendChatMsg(std::shared_ptr<ChatDataBase> msg)
         role = ChatRole::Self;
         pChatItem = new ChatItemBase(role);
         pChatItem->setUserName(self_info->_name);
-        pChatItem->setUserIcon(QPixmap(self_info->_icon));
+        pChatItem->setUserIcon(Utils::GetAvatarPixmap(self_info->_icon));
         if (msg->GetMsgType() == ChatMsgType::TEXT) {
             pBubble = new TextBubble(role, msg->GetMsgContent());
         }
@@ -73,7 +79,7 @@ void ChatPage::AppendChatMsg(std::shared_ptr<ChatDataBase> msg)
         auto friend_info = UserManager::GetInstance()->GetFriendById(msg->GetSendUid());
         if (!friend_info) return;
         pChatItem->setUserName(friend_info->_name);
-        pChatItem->setUserIcon(QPixmap(friend_info->_icon));
+        pChatItem->setUserIcon(Utils::GetAvatarPixmap(friend_info->_icon));
         if (msg->GetMsgType() == ChatMsgType::TEXT) {
             pBubble = new TextBubble(role, msg->GetMsgContent());
         }

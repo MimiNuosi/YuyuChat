@@ -99,15 +99,13 @@ void Session::SafeClearSession()
 
 	std::string redis_session_id = "";
 	bool b_session = RedisManager::GetInstance()->Get(USER_SESSION_PREFIX + uid_str, redis_session_id);
-	if (!b_session || redis_session_id != _session_id) {
-		return;
+	if (b_session && redis_session_id == _session_id) {
+		RedisManager::GetInstance()->Del(USER_SESSION_PREFIX + uid_str);
+		RedisManager::GetInstance()->Del(USERIPPREFIX + uid_str);
+
+		auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
+		RedisManager::GetInstance()->DecreaseLoginCount(server_name);
 	}
-
-	RedisManager::GetInstance()->Del(USER_SESSION_PREFIX + uid_str);
-	RedisManager::GetInstance()->Del(USERIPPREFIX + uid_str);
-
-	auto server_name = ConfigManager::Inst().GetValue("SelfServer", "Name");
-	RedisManager::GetInstance()->DecreaseLoginCount(server_name);
 }
 
 void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)

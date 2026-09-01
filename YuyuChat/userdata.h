@@ -12,6 +12,7 @@ class SearchInfo {
 public:
     SearchInfo(int uid, QString name, QString nick, QString desc, int sex , QString icon)
         : _uid(uid), _name(name), _nick(nick), _desc(desc), _sex(sex), _icon(icon){}
+    SearchInfo() = default;
     int _uid;
     QString _name;
     QString _nick;
@@ -25,6 +26,7 @@ public:
     AddFriendApply(int from_uid, QString name, QString desc,
                    QString icon, QString nick, int sex)
         : _from_uid(from_uid), _name(name), _nick(nick), _desc(desc), _sex(sex), _icon(icon){}
+    AddFriendApply() = default;
     int _from_uid;
     QString _name;
     QString _desc;
@@ -45,6 +47,7 @@ struct ApplyInfo {
         _nick(addinfo->_nick),_sex(addinfo->_sex),
         _status(0)
     {}
+    ApplyInfo() = default;
     void SetIcon(QString head){
         _icon = head;
     }
@@ -63,7 +66,7 @@ struct AuthInfo {
              QString nick, QString icon, int sex):
         _uid(uid), _name(name), _nick(nick), _icon(icon),
         _sex(sex), _thread_id(0){}
-
+    AuthInfo() = default;
     void SetChatDatas(std::vector<std::shared_ptr<TextChatData>> _chat_datas);
     int _uid;
     QString _name;
@@ -80,6 +83,7 @@ struct AuthRsp {
         :_uid(peer_uid),_name(peer_name),_nick(peer_nick),
         _icon(peer_icon),_sex(peer_sex),_thread_id(0)
     {}
+    AuthRsp() = default;
     void SetChatDatas(std::vector<std::shared_ptr<TextChatData>> _chat_datas);
     int _uid;
     QString _name;
@@ -112,6 +116,8 @@ struct UserInfo {
         _uid(search_info->_uid),_name(search_info->_name),_nick(search_info->_nick),
         _icon(search_info->_icon),_sex(search_info->_sex), _desc(search_info->_desc),_last_msg(""){}
 
+    UserInfo() = default;
+
     void AppendChatMsgs(std::vector<std::shared_ptr<TextChatData>>);
 
     int _uid;
@@ -131,7 +137,8 @@ public:
     ChatDataBase(QString unique_id, int thread_id, ChatFormType form_type, ChatMsgType msg_type,
                  QString content, int send_uid, int status, QString chat_time);
     ChatDataBase(int msg_id, QString unique_id, int thread_id, ChatFormType form_type, ChatMsgType msg_type,
-                 QString content, int send_uid, int status, QString chat_time);
+                 QString content, int send_uid, int status, QString chat_time);\
+    ChatDataBase() = default;
     int GetMsgId() { return _msg_id; }
     int GetThreadId() { return _thread_id; }
     ChatFormType GetFormType() { return _form_type; }
@@ -189,10 +196,12 @@ public:
 
     }
 
+    TextChatData() = default;
 };
 
 //聊天线程信息
 struct ChatThreadInfo {
+    ChatThreadInfo() = default;
     int _thread_id;
     QString _type;     // "private" or "group"
     int _user1_id;    // 私聊时对应 private_chat.user1_id；群聊时设为 0
@@ -204,6 +213,7 @@ class ChatThreadData {
 public:
     ChatThreadData(int other_id, int thread_id, int last_msg_id):
         _other_id(other_id), _thread_id(thread_id), _last_msg_id(last_msg_id){}
+    ChatThreadData() = default;
     void AddMsg(std::shared_ptr<ChatDataBase> msg);
     void MoveMsg(std::shared_ptr<ChatDataBase> msg);
     void SetLastMsgId(int msg_id);
@@ -235,4 +245,38 @@ private:
     QMap<QString, std::shared_ptr<ChatDataBase>> _msg_unrsp_map;
 };
 
+// 基础类与智能指针声明
+Q_DECLARE_METATYPE(SearchInfo)
+Q_DECLARE_METATYPE(std::shared_ptr<SearchInfo>)
+
+Q_DECLARE_METATYPE(AddFriendApply)
+Q_DECLARE_METATYPE(std::shared_ptr<AddFriendApply>)
+
+Q_DECLARE_METATYPE(ApplyInfo)
+Q_DECLARE_METATYPE(std::shared_ptr<ApplyInfo>)
+
+Q_DECLARE_METATYPE(AuthInfo)
+Q_DECLARE_METATYPE(std::shared_ptr<AuthInfo>)
+
+Q_DECLARE_METATYPE(AuthRsp)
+Q_DECLARE_METATYPE(std::shared_ptr<AuthRsp>)
+
+Q_DECLARE_METATYPE(UserInfo)
+Q_DECLARE_METATYPE(std::shared_ptr<UserInfo>)
+
+Q_DECLARE_METATYPE(ChatDataBase)
+Q_DECLARE_METATYPE(std::shared_ptr<ChatDataBase>)
+
+Q_DECLARE_METATYPE(TextChatData)
+Q_DECLARE_METATYPE(std::shared_ptr<TextChatData>)
+
+Q_DECLARE_METATYPE(ChatThreadInfo)
+Q_DECLARE_METATYPE(std::shared_ptr<ChatThreadInfo>)
+
+Q_DECLARE_METATYPE(ChatThreadData)
+Q_DECLARE_METATYPE(std::shared_ptr<ChatThreadData>)
+
+// 容器类声明
+Q_DECLARE_METATYPE(std::vector<std::shared_ptr<TextChatData>>)
+Q_DECLARE_METATYPE(std::vector<std::shared_ptr<ChatThreadInfo>>)
 #endif

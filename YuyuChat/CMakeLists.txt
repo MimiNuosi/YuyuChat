@@ -70,6 +70,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         userinfopage.h userinfopage.cpp userinfopage.ui
         imagecropperlabel.h imagecropperlabel.cpp
         imagecropperdialog.h
+        filetcpmanager.h filetcpmanager.cpp
 
 
 

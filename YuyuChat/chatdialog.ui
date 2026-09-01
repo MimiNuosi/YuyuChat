@@ -54,7 +54,7 @@
        <number>7</number>
       </property>
       <property name="leftMargin">
-       <number>10</number>
+       <number>5</number>
       </property>
       <property name="topMargin">
        <number>30</number>
@@ -81,7 +81,7 @@
           <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>0</number>
+          <number>4</number>
          </property>
          <item>
           <widget class="QLabel" name="side_head_label">
@@ -120,6 +120,22 @@
          </item>
          <item>
           <widget class="StateWidget" name="side_contact_label" native="true">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="StateWidget" name="side_settings_label" native="true">
            <property name="minimumSize">
             <size>
              <width>30</width>
@@ -265,7 +281,11 @@
    </item>
    <item>
     <widget class="QStackedWidget" name="stackedWidget">
+     <property name="currentIndex">
+      <number>1</number>
+     </property>
      <widget class="ChatPage" name="chat_page"/>
+     <widget class="UserInfoPage" name="user_info_page"/>
      <widget class="FriendInfoPage" name="friend_info_page"/>
      <widget class="ApplyFriendPage" name="friend_apply_page"/>
     </widget>
@@ -315,6 +335,12 @@
    <class>FriendInfoPage</class>
    <extends>QWidget</extends>
    <header>friendinfopage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>UserInfoPage</class>
+   <extends>QWidget</extends>
+   <header location="global">userinfopage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

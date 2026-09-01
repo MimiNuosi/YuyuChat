@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "global.h"
+#include "filetcpmanager.h"
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -31,6 +32,8 @@ int main(int argc, char *argv[])
     QString gate_port = settings.value("GateServer/port").toString();
     gate_url_prefix =  "http://" + gate_host + ":" + gate_port;
 
+    TcpThread tcp_thread;
+    FileTcpThread file_tcp_thread;
     MainWindow w;
     w.show();
     return QApplication::exec();

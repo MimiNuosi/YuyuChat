@@ -15,6 +15,11 @@ namespace {
     std::mutex g_users_mtx;
 }
 
+static int64_t getCurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    return std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+}
+
 bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo) {
     std::cout << "[追踪] GetBaseInfo 开始执行, UID: " << uid << std::endl;
     std::lock_guard<std::mutex> lock(g_users_mtx);
@@ -215,7 +220,7 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     Defer defer([&session, &rtvalue, msg_id]() {
         std::string return_str = rtvalue.toStyledString();
         std::cout << "[追踪] 触发 Defer，准备向客户端发送最终回包: " << return_str << std::endl;
-        session->Send(return_str, MSG_CHAT_LOGIN_REP);
+        session->Send(return_str, MSG_CHAT_LOGIN_RSP);
         std::cout << "========== [聊天登录流程结束] ==========\n" << std::endl;
         });
 
@@ -344,6 +349,10 @@ void ChatLoginHandler(std::shared_ptr<Session> session, short msg_id, std::strin
     session->SetUserId(uid);
     std::string ip_key = USERIPPREFIX + uid_str;
     RedisManager::GetInstance()->Set(ip_key, server_name);
+    UserManager::GetInstance()->SetUserSession(uid, session);
+
+    std::string session_key = USER_SESSION_PREFIX + uid_str;
+    RedisManager::GetInstance()->Set(session_key, session->GetSessionId());
     UserManager::GetInstance()->SetUserSession(uid, session);
 
     std::cout << "[追踪] 登录逻辑全部执行完毕，准备返回 (即将触发 Defer)" << std::endl;
@@ -716,7 +725,7 @@ void LoadChatMessageHandler(std::shared_ptr<Session> session, short msg_id, std:
     rtvalue["thread_id"] = (Json::Int64)thread_id;
 
     Defer defer([&session, &rtvalue]() {
-        session->Send(rtvalue.toStyledString(), ID_LOAD_CHAT_MESSAGE_RSP);
+        session->Send(rtvalue.toStyledString(), ID_LOAD_CHAT_MSG_RSP);
         });
 
     bool load_more = false;
@@ -729,7 +738,7 @@ void LoadChatMessageHandler(std::shared_ptr<Session> session, short msg_id, std:
     }
     rtvalue["last_message_id"] = res->nextLastId;
     rtvalue["load_more"] = res->loadMore;
-    rtvalue["messages"] = Json::arrayValue;
+    rtvalue["chat_datas"] = Json::arrayValue;
     for (auto& message : res->messages) {
         Json::Value  chat_data;
         chat_data["sender"] = message->sender_id;
@@ -742,7 +751,7 @@ void LoadChatMessageHandler(std::shared_ptr<Session> session, short msg_id, std:
     }
 }
 
-REGISTER_CALL_BACK(ID_LOAD_CHAT_MESSAGE_REQ, LoadChatMessageHandler);
+REGISTER_CALL_BACK(ID_LOAD_CHAT_MSG_REQ, LoadChatMessageHandler);
 REGISTER_CALL_BACK(ID_CREATE_PRIVATE_CHAT_REQ, CreateChatThreadHandler);
 REGISTER_CALL_BACK(ID_LOAD_CHAT_THREAD_REQ, GetUserThreadsHandler);
 REGISTER_CALL_BACK(ID_HEART_BEAT_REQ, HeartBeatHandler)

@@ -28,18 +28,20 @@ private:
     QMap<TipErr, QString> _tip_errs;
     int _uid;
     QString _token;
+    std::shared_ptr<ServerInfo> _si;
 public slots:
     void slot_forget_password();
 signals:
     void switchRegister();
     void switchReset();
-    void sig_connect_tcp(ServerInfo);
+    void sig_connect_tcp(std::shared_ptr<ServerInfo>);
+    void sig_connect_res_server(std::shared_ptr<ServerInfo>);
 private slots:
     void on_login_button_clicked();
     void slot_login_mod_finish(ReqID id, QString res, ErrorCodes err);
     void slot_tcp_con_finish(bool b_success);
     void slot_login_failed(int err);
-
+    void slot_res_con_finish(bool b_success);
 };
 
 #endif // LOGINDIALOG_H

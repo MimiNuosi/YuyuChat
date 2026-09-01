@@ -13,12 +13,14 @@ class UserManager:public QObject,public Singleton<UserManager>,
     Q_OBJECT
 public:
     friend class Singleton<UserManager>;
-    ~ UserManager();
+    ~UserManager();
     void SetName(QString name);
     QString GetName();
     void SetUid(int uid);
     void SetToken(QString token);
+    QString GetToken();
     int GetUid();
+    void SetIcon(QString icon);
     QString GetIcon();
     int GetSex();
     QString GetDesc();
@@ -49,6 +51,9 @@ public:
     std::shared_ptr<ChatThreadData> GetChatThreadByUid(int uid);
     std::shared_ptr<ChatThreadData> GetCurLoadThreadData();
     std::shared_ptr<ChatThreadData> GetNextLoadThreadData();
+    std::shared_ptr<QFileInfo> GetUploadInfoByName(QString name);
+    void AddUploadFile(QString name, std::shared_ptr<QFileInfo> file_info);
+
 private:
     UserManager();
     QString _token;
@@ -63,6 +68,8 @@ private:
     int _last_chat_thread_id;
     int _cur_load_chat_index;
     QMap<int,int> _uid_to_thread_id;
+    std::mutex _mutex;
+    QMap<QString, std::shared_ptr<QFileInfo> > _name_to_upload_info;
 };
 
 #endif // USERMANAGER_H

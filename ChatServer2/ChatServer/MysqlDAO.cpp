@@ -723,7 +723,7 @@ std::shared_ptr<PageResult> MysqlDAO::LoadChatMessages(int64_t threadId, int64_t
 
 		std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
-        while (true)
+        while (res->next())
         {
             ChatMessage msg;
             msg.message_id = res->getUInt64("message_id");
@@ -769,24 +769,19 @@ bool MysqlDAO::AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_da
             conn->prepareStatement(
                 "INSERT INTO chat_message "
                 "(thread_id, sender_id, recv_id, content, created_at, updated_at, status) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "VALUES (?, ?, ?, ?, NOW(), NOW(), ?)"
             )
         );
 
         for (auto& msg : chat_datas) {
-            // 普通字段
             pstmt->setUInt64(1, msg->thread_id);
             pstmt->setUInt64(2, msg->sender_id);
             pstmt->setUInt64(3, msg->recv_id);
             pstmt->setString(4, msg->content);
-
-            pstmt->setString(5, msg->chat_time);  // created_at
-            pstmt->setString(6, msg->chat_time);  // updated_at
-
-            pstmt->setInt(7, msg->status);
+            pstmt->setInt(5, msg->status); // 对应第 5 个占位符
             pstmt->executeUpdate();
 
-            // 2. 取 LAST_INSERT_ID()
+            //  取 LAST_INSERT_ID()
             std::unique_ptr<sql::Statement> keyStmt(
                 conn->createStatement()
             );

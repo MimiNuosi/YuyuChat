@@ -9,6 +9,8 @@
 #include <QAction>
 #include <QMouseEvent>
 #include <QApplication>
+#include <QStandardPaths>
+#include "global.h"
 ChatDialog::ChatDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ChatDialog),_mode(ChatUIMode::ChatMode),
@@ -54,11 +56,11 @@ ChatDialog::ChatDialog(QWidget *parent)
 
     ShowSearch(false);
 
-    QPixmap pixmap(":/res/head_1.jpg");
-    ui->side_head_label->setPixmap(pixmap); // 将图片设置到QLabel上
-    QPixmap scaledPixmap = pixmap.scaled( ui->side_head_label->size(), Qt::KeepAspectRatio); // 将图片缩放到label的大小
-    ui->side_head_label->setPixmap(scaledPixmap); // 将缩放后的图片设置到QLabel上
-    ui->side_head_label->setScaledContents(true); // 设置QLabel自动缩放图片内容以适应大小
+    QString head_icon = UserManager::GetInstance()->GetIcon();
+    QPixmap pixmap = Utils::GetAvatarPixmap(head_icon);
+    QPixmap scaledPixmap = pixmap.scaled(ui->side_head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    ui->side_head_label->setPixmap(scaledPixmap);
+    ui->side_head_label->setScaledContents(true);
 
     ui->side_chat_label->setProperty("state","normal");
 
@@ -70,6 +72,7 @@ ChatDialog::ChatDialog(QWidget *parent)
 
     connect(ui->side_chat_label, &StateWidget::clicked, this, &ChatDialog::slot_side_chat);
     connect(ui->side_contact_label, &StateWidget::clicked, this, &ChatDialog::slot_side_contact);
+    connect(ui->side_settings_label, &StateWidget::clicked,this , &ChatDialog::slot_side_settings);
     connect(ui->search_edit, &QLineEdit::textChanged, this, &ChatDialog::slot_text_changed);
 
     // 安装到 qApp，监听整个程序的鼠标点击，而不是只听自己的
@@ -99,6 +102,9 @@ ChatDialog::ChatDialog(QWidget *parent)
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_create_private_chat,this,&ChatDialog::slot_create_private_chat);
     connect(TcpManager::GetInstance().get(), &TcpManager::sig_load_chat_msg, this, &ChatDialog::slot_load_chat_msg);
     connect(TcpManager::GetInstance().get(), &TcpManager::sig_chat_msg_rsp, this, &ChatDialog::slot_add_chat_msg);
+    connect(ui->user_info_page, &UserInfoPage::sig_reset_head, this, &ChatDialog::slot_reset_head);
+
+    loadChatList();
 }
 
 ChatDialog::~ChatDialog()
@@ -182,6 +188,7 @@ void ChatDialog::ShowSearch(bool bsearch)
         ui->con_user_list->show();
         _mode = ChatUIMode::ContactMode;
     }
+
 }
 
 void ChatDialog::ClearLabelState(StateWidget *lb)
@@ -226,40 +233,27 @@ void ChatDialog::SetSelectChatItem(int thread_id)
 
 void ChatDialog::SetSelectChatPage(int thread_id)
 {
-    if (ui->chat_user_list->count() <= 0) return;
+    std::shared_ptr<ChatThreadData> thread_data = nullptr;
 
-    // 默认选中第 0 项
     if (thread_id == 0) {
-        auto item = ui->chat_user_list->item(0);
-        if (!item) return;
-        auto* con_item = qobject_cast<ChatUserWid*>(ui->chat_user_list->itemWidget(item));
-        if (con_item) {
-            auto thread_data = con_item->GetChatInfo();
-            if (thread_data) {
-                ui->chat_page->SetChatData(thread_data);
-                _cur_chat_thread_id = thread_data->GetThreadId();
-                _cur_chat_uid = thread_data->GetOtherId();
-            }
-        }
-        return;
-    }
-
-    // 指定 thread_id 选中
-    auto find_iter = _chat_thread_items.find(thread_id);
-    if (find_iter == _chat_thread_items.end()) return;
-
-    QWidget* widget = ui->chat_user_list->itemWidget(find_iter.value());
-    if (!widget) return;
-
-    auto* con_item = qobject_cast<ChatUserWid*>(widget);
-    if (con_item) {
-        auto thread_data = con_item->GetChatInfo();
-        if (thread_data) {
-            ui->chat_page->SetChatData(thread_data);
-            _cur_chat_thread_id = thread_data->GetThreadId();
-            _cur_chat_uid = thread_data->GetOtherId();
+        if (ui->chat_user_list->count() <= 0) return;
+        auto* firstItem = ui->chat_user_list->item(0);
+        if (!firstItem) return;
+        auto* con_item = qobject_cast<ChatUserWid*>(ui->chat_user_list->itemWidget(firstItem));
+        if (con_item && con_item->GetChatInfo()) {
+            thread_id = con_item->GetChatInfo()->GetThreadId();
         }
     }
+
+    // 直接从 UserManager 缓存池中根据 thread_id 捞出会话实体
+    thread_data = UserManager::GetInstance()->GetChatThreadByThreadId(thread_id);
+    if (!thread_data) return;
+
+    _cur_chat_thread_id = thread_data->GetThreadId();
+    _cur_chat_uid = thread_data->GetOtherId();
+
+    // 驱动右侧 ChatPage 进行气泡全量渲染
+    ui->chat_page->SetChatData(thread_data);
 }
 
 void ChatDialog::slot_loading_chat_user()
@@ -302,6 +296,9 @@ void ChatDialog::slot_side_chat()
     ui->stackedWidget->setCurrentWidget(ui->chat_page);
     _state = ChatUIMode::ChatMode;
     ShowSearch(false);
+    int target_thread_id = _cur_chat_thread_id;
+    SetSelectChatItem(target_thread_id);
+    SetSelectChatPage(target_thread_id);
 }
 
 void ChatDialog::slot_side_contact()
@@ -310,6 +307,14 @@ void ChatDialog::slot_side_contact()
     ClearLabelState(ui->side_contact_label);
     ui->stackedWidget->setCurrentWidget(ui->friend_apply_page);
     _state = ChatUIMode::ContactMode;
+    ShowSearch(false);
+}
+
+void ChatDialog::slot_side_settings()
+{
+    ClearLabelState(ui->side_settings_label);
+    ui->stackedWidget->setCurrentWidget(ui->user_info_page);
+    _state = ChatUIMode::SettingsMode;
     ShowSearch(false);
 }
 
@@ -556,9 +561,12 @@ void ChatDialog::loadChatList() {
 
 void ChatDialog::loadChatMsg()
 {
-    _cur_load_chat = UserManager::GetInstance()->GetCurLoadThreadData();
+    if (_cur_chat_thread_id == 0) {
+        return;
+    }
 
-    if (_cur_load_chat == nullptr) {
+    _cur_load_chat = UserManager::GetInstance()->GetChatThreadByThreadId(_cur_chat_thread_id);
+    if (!_cur_load_chat) {
         return;
     }
 
@@ -566,7 +574,7 @@ void ChatDialog::loadChatMsg()
 
     QJsonObject jsonObj;
     jsonObj["thread_id"] = _cur_load_chat->GetThreadId();
-    jsonObj["message_id"] = _cur_load_chat->GetLastMsgId();
+    jsonObj["last_msg_id"] = _cur_load_chat->GetLastMsgId();
 
     QJsonDocument doc(jsonObj);
     QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
@@ -649,52 +657,51 @@ void ChatDialog::slot_create_private_chat(int uid, int other_id, int thread_id)
 
 void ChatDialog::slot_load_chat_msg(int thread_id, int msg_id, bool load_more, std::vector<std::shared_ptr<TextChatData> > msglists)
 {
-    _cur_load_chat->SetLastMsgId(msg_id);
-
-    for(auto& msg: msglists){
-        _cur_load_chat->AppendMsg(msg->GetMsgId(),msg);
-    }
-
-    if (load_more) {
-        //发送请求给服务器
-        //发送请求逻辑
-        QJsonObject jsonObj;
-        jsonObj["thread_id"] = _cur_load_chat->GetThreadId();
-        jsonObj["message_id"] = _cur_load_chat->GetLastMsgId();
-
-        QJsonDocument doc(jsonObj);
-        QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
-
-        //发送tcp请求给chat server
-        emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_LOAD_CHAT_MSG_REQ, jsonData);
-        return;
-    }
-
-    //获取下一个chat_thread
-    _cur_load_chat = UserManager::GetInstance()->GetNextLoadThreadData();
-    //都加载完了
-    if(!_cur_load_chat){
-        //更新聊天界面信息
-        SetSelectChatItem();
-        SetSelectChatPage();
+    // 1. 严格通过回包带回来的 thread_id 查找会话，并做判空保护
+    auto chat_thread = UserManager::GetInstance()->GetChatThreadByThreadId(thread_id);
+    if (!chat_thread) {
+        qWarning() << "[消息加载] 未找到 thread_id=" << thread_id << " 对应的会话对象";
         showLoadingDlg(false);
         return;
     }
 
-    //继续加载下一个聊天
-    //发送请求给服务器
-    //发送请求逻辑
+    chat_thread->SetLastMsgId(msg_id);
+
+    for (auto& msg : msglists) {
+        chat_thread->AppendMsg(msg->GetMsgId(), msg);
+    }
+
+    // 2. 如果当前会话还有下一页，继续拉取当前会话
+    if (load_more) {
+        QJsonObject jsonObj;
+        jsonObj["thread_id"] = thread_id;
+        jsonObj["last_msg_id"] = chat_thread->GetLastMsgId();
+
+        QJsonDocument doc(jsonObj);
+        emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_LOAD_CHAT_MSG_REQ, doc.toJson(QJsonDocument::Compact));
+        return;
+    }
+
+    // 3. 当前会话历史消息拉取完毕后，如果它正是当前激活窗口，立即刷新页面
+    if (_cur_chat_thread_id == 0 || _cur_chat_thread_id == thread_id) {
+        _cur_chat_thread_id = thread_id;
+        ui->chat_page->SetChatData(chat_thread);
+    }
+
+    // 4. 获取下一个待拉取会话
+    _cur_load_chat = UserManager::GetInstance()->GetNextLoadThreadData();
+    if (!_cur_load_chat) {
+        showLoadingDlg(false);
+        return;
+    }
+
+    // 5. 继续拉取下一个会话的消息
     QJsonObject jsonObj;
     jsonObj["thread_id"] = _cur_load_chat->GetThreadId();
-    jsonObj["message_id"] = _cur_load_chat->GetLastMsgId();
+    jsonObj["last_msg_id"] = _cur_load_chat->GetLastMsgId();
 
     QJsonDocument doc(jsonObj);
-    QByteArray jsonData = doc.toJson(QJsonDocument::Compact);
-
-    //发送tcp请求给chat server
-    emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_LOAD_CHAT_MSG_REQ, jsonData);
-    return;
-
+    emit TcpManager::GetInstance()->sig_send_data(ReqID::ID_LOAD_CHAT_MSG_REQ, doc.toJson(QJsonDocument::Compact));
 }
 
 void ChatDialog::slot_add_chat_msg(int thread_id, std::vector<std::shared_ptr<TextChatData> > msglists)
@@ -722,6 +729,51 @@ void ChatDialog::slot_add_chat_msg(int thread_id, std::vector<std::shared_ptr<Te
         if (chat_wid) {
             chat_wid->UpdateLastMsg(msglists);
         }
+    }
+}
+
+void ChatDialog::slot_reset_head()
+{
+    QString head_icon = UserManager::GetInstance()->GetIcon();
+    if (head_icon.isEmpty()) {
+        return;
+    }
+
+    // 1. 如果是默认头像（:/res/head_X.jpg 格式），直接走资源加载
+    QRegularExpression regex("^:/res/head_(\\d+)\\.jpg$");
+    QRegularExpressionMatch match = regex.match(head_icon);
+    if (match.hasMatch()) {
+        QPixmap pixmap(head_icon);
+        if (!pixmap.isNull()) {
+            QPixmap scaledPixmap = pixmap.scaled(ui->side_head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            ui->side_head_label->setPixmap(scaledPixmap);
+            ui->side_head_label->setScaledContents(true);
+        }
+        return;
+    }
+
+    // 2. 如果是用户上传的自定义头像，去本地用户私有缓存目录查找
+    QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    auto uid = UserManager::GetInstance()->GetUid();
+    QDir avatarsDir(storageDir + "/user/" + QString::number(uid) + "/avatars");
+
+    auto file_name = QFileInfo(head_icon).fileName();
+    QString avatarPath = avatarsDir.filePath(file_name);
+
+    QPixmap pixmap(avatarPath);
+    if (!pixmap.isNull()) {
+        // 本地存在，直接缩放并绘制到左侧栏头像控件
+        QPixmap scaledPixmap = pixmap.scaled(ui->side_head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        ui->side_head_label->setPixmap(scaledPixmap);
+        ui->side_head_label->setScaledContents(true);
+    } else {
+        qWarning() << "[头像加载] 本地未找到该头像文件，准备加载默认头像并触发下载:" << avatarPath;
+        // 先用默认头像兜底显示，避免界面出现白块或黑底
+        QPixmap defaultPix(":/res/head_1.jpg");
+        ui->side_head_label->setPixmap(defaultPix.scaled(ui->side_head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+
+        // 如果已实现远程拉取，可在此处触发 FileServer 下载
+        // LoadHeadIcon(avatarPath, ui->side_head_label, file_name, "self_icon");
     }
 }
 

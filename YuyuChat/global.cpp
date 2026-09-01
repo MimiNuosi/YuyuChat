@@ -1,5 +1,5 @@
 #include "global.h"
-
+#include <QStandardPaths>
 std::function<void(QWidget*)> repolish = [](QWidget* w){
     w->style()->unpolish(w);
     w->style()->polish(w);
@@ -55,4 +55,28 @@ bool CheckVerifyValid(const QString& verify, QString& err_msg) {
     }
     return true;
 }
+
+QPixmap GetAvatarPixmap(const QString& icon_str) {
+    // 1. 如果是默认头像 (:/res/head_X.jpg)
+    QRegularExpression regex("^:/res/head_(\\d+)\\.jpg$");
+    if (regex.match(icon_str).hasMatch()) {
+        QPixmap pixmap(icon_str);
+        if (!pixmap.isNull()) return pixmap;
+    }
+
+    // 2. 如果是用户自定义上传的头像，去本地缓存目录查找
+    QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir avatarsDir(storageDir + "/avatars");
+    if (avatarsDir.exists()) {
+        QString avatarPath = avatarsDir.filePath(QFileInfo(icon_str).fileName());
+        QPixmap pixmap(avatarPath);
+        if (!pixmap.isNull()) {
+            return pixmap;
+        }
+    }
+
+    // 3. 兜底返回默认内置头像
+    return QPixmap(":/res/head_1.jpg");
 }
+}
+

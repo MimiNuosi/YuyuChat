@@ -130,8 +130,8 @@ TextChatMsgRsp ChatGrpcClient::TextChatMsg(std::string server_ip, const TextChat
 		rsp.set_touid(req.touid());
 		for (const auto& text : req.textmsgs()) {
 			TextChatData* new_text = rsp.add_textmsgs();
-			new_text->set_msgid(text.msgid());
-			new_text->set_msgcontext(text.msgcontext());
+			new_text->set_msg_id(text.msg_id());
+			new_text->set_msgcontent(text.msgcontent());
 		}
 		});
 

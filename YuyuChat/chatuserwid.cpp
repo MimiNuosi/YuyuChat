@@ -26,7 +26,7 @@ void ChatUserWid::SetChatInfo(std::shared_ptr<ChatThreadData> chat_data)
     auto other_info = UserManager::GetInstance()->GetFriendById(other_id);
 
     // 加载图片
-    QPixmap pixmap(other_info->_icon);
+    QPixmap pixmap = Utils::GetAvatarPixmap(other_info->_icon);
     if (pixmap.isNull()) {
         pixmap.load(":/res/head_1.jpg");
     }
