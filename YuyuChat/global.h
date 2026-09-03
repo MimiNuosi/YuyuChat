@@ -22,8 +22,8 @@ extern std::function<QString(QString)> xorString;
 extern QString gate_url_prefix;
 
 const int CHAT_COUNT_PER_PAGE = 13;
-//TCP文件上传包头长度
-#define FILE_UPLOAD_HEAD_LEN 6
+//TCP文件上传包头长度(2字节ID + 2字节长度)
+#define FILE_UPLOAD_HEAD_LEN 4
 //TCP ID长度
 #define FILE_UPLOAD_ID_LEN 2
 //TCP 长度字段的长度

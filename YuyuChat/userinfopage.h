@@ -21,7 +21,7 @@ signals:
     void sig_reset_head(); // 通知主窗口刷新侧边栏/聊天列表头像
 
 private slots:
-    void on_up_btn_clicked();
+    void slot_upload_avatar();
     void on_submit_button_clicked();
 
 private:

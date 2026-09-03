@@ -1,4 +1,5 @@
 #include "global.h"
+#include "usermanager.h"
 #include <QStandardPaths>
 std::function<void(QWidget*)> repolish = [](QWidget* w){
     w->style()->unpolish(w);
@@ -57,6 +58,10 @@ bool CheckVerifyValid(const QString& verify, QString& err_msg) {
 }
 
 QPixmap GetAvatarPixmap(const QString& icon_str) {
+    if (icon_str.isEmpty()) {
+        return QPixmap(":/res/head_1.jpg");
+    }
+
     // 1. 如果是默认头像 (:/res/head_X.jpg)
     QRegularExpression regex("^:/res/head_(\\d+)\\.jpg$");
     if (regex.match(icon_str).hasMatch()) {
@@ -64,9 +69,12 @@ QPixmap GetAvatarPixmap(const QString& icon_str) {
         if (!pixmap.isNull()) return pixmap;
     }
 
-    // 2. 如果是用户自定义上传的头像，去本地缓存目录查找
+    // 2. 如果是用户自定义上传的头像，去对应 uid 的私有目录查找
     QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir avatarsDir(storageDir + "/avatars");
+    auto uid = UserManager::GetInstance()->GetUid();
+
+    // 保持与保存目录完全一致：storageDir + "/user/" + uid + "/avatars"
+    QDir avatarsDir(storageDir + "/user/" + QString::number(uid) + "/avatars");
     if (avatarsDir.exists()) {
         QString avatarPath = avatarsDir.filePath(QFileInfo(icon_str).fileName());
         QPixmap pixmap(avatarPath);

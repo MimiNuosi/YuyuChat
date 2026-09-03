@@ -50,4 +50,7 @@ void LogicSystem::HandleMsg(std::shared_ptr<LogicNode> msg) {
 		iter->second(msg->_session, msg->_recvnode->_msg_id,
 			std::string(msg->_recvnode->_data, msg->_recvnode->_cur_len));
 	}
+	else {
+		std::cerr << "[LogicSystem 警告] 未找到处理 msg_id = " << msg->_recvnode->_msg_id << " 的回调函数！" << std::endl;
+	}
 }

@@ -144,9 +144,10 @@ void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
 				msg_id = boost::asio::detail::socket_ops::network_to_host_short(msg_id);
 				std::cout << "msg id is " << msg_id << "\n";
 
-				short data_len = 0;
-				memcpy(&data_len, _recv_head_node->_data + HEAD_ID_LEN, HEAD_DATA_LEN);
-				data_len = boost::asio::detail::socket_ops::network_to_host_short(data_len);
+				// é•¿åº¦å­—æ®µä¸º [2å­—èŠ‚ å¤§ç«¯åº] æ— ç¬¦å·æ•°ï¼Œå•å¸§æœ€å¤§ 65535ï¼›é¡»ç”¨ int/uint16 æ¥æ”¶ï¼Œ
+				// å¦åˆ™è¶…è¿‡ 32767 çš„ base64 åˆ†ç‰‡ä¼šè¢«æœ‰ç¬¦å· short åˆ¤è´Ÿè€Œæ‹’æ”¶ã€‚
+				unsigned char* head_p = reinterpret_cast<unsigned char*>(_recv_head_node->_data);
+				int data_len = (head_p[HEAD_ID_LEN] << 8) | head_p[HEAD_ID_LEN + 1];
 				std::cout << "Data Len: " << data_len << "\n";
 				if (data_len<0 || data_len>MAX_LENGTH) {
 					std::cerr << "Invalid data length is " << data_len << "\n";
@@ -154,7 +155,7 @@ void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
 					return;
 				}
 
-				_recv_msg_node = std::make_shared<RecvNode>(static_cast<short>(data_len), msg_id);
+				_recv_msg_node = std::make_shared<RecvNode>(data_len, msg_id);
 				_b_head_parse = true;
 			}
 
@@ -176,9 +177,8 @@ void Session::HandleRead(const boost::system::error_code& ec, std::size_t bt)
 			bt -= msg_remain;
 			_recv_msg_node->_data[_recv_msg_node->_total_len] = '\0';
 
-			// Ê¹ÓÃ std::hash ¶Ô×Ö·û´®½øĞĞ¹şÏ£
 			std::hash<std::string> hash_fn;
-			size_t hash_value = hash_fn(_session_id); // Éú³É¹şÏ£Öµ
+			size_t hash_value = hash_fn(_session_id); 
 			int index = hash_value % LOGIC_WORKER_COUNT;
 
 			LogicSystem::GetInstance()->PostMsgToQue(std::make_shared<LogicNode>(shared_from_this(), _recv_msg_node),index);
@@ -206,7 +206,7 @@ void Session::HandleWrite(const boost::system::error_code& ec)
 		if (!_send_que.empty()) {
 			_send_que.pop();
 		}
-		//±ØĞëÔÙ´ÎÅĞ¿Õ£¬È·ÈÏ»¹ÓĞºóĞø°üĞèÒª·¢
+		//ï¿½ï¿½ï¿½ï¿½ï¿½Ù´ï¿½ï¿½Ğ¿Õ£ï¿½È·ï¿½Ï»ï¿½ï¿½Ğºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½
 		if(!_send_que.empty()){
 			auto msg_node = _send_que.front();
 			auto self = shared_from_this();

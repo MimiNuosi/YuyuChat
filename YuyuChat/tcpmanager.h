@@ -28,8 +28,9 @@ private:
     friend class Singleton<TcpManager>;
     TcpManager();
     void initHandlers();
+    void initSocketHandlers();
     void handleMessage(ReqID id,int len,QByteArray data);
-    QTcpSocket _socket;
+    QTcpSocket* _socket = nullptr;
     QString _host;
     uint16_t _port;
     QByteArray _buffer;

@@ -826,14 +826,16 @@ bool MysqlDAO::UpdateHeadInfo(int64_t uid, const std::string& icon) {
     try {
         auto& conn = con->_con;
         // 预编译 SQL 语句防止注入
+        conn->setAutoCommit(true);
         std::string update_sql = "UPDATE user SET icon = ? WHERE uid = ?;";
         std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(update_sql));
 
         pstmt->setString(1, icon);
         pstmt->setInt64(2, uid);
 
-        pstmt->executeUpdate();
-        return true;
+        int rows = pstmt->executeUpdate();
+        std::cout << "[DB 成功] UID: " << uid << " 更新头像为: " << icon << "，受影响行数: " << rows << std::endl;
+        return rows >= 0;
     }
     catch (sql::SQLException& e) {
         std::cerr << "[DB Error] SQLException in UpdateHeadInfo (UID: "

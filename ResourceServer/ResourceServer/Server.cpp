@@ -97,6 +97,8 @@ void Server::HandleAccept(std::shared_ptr<Session> new_session, const boost::sys
 			std::lock_guard<std::shared_mutex> lock(_mutex);
 			_sessions.insert({ new_session->GetSessionId(),new_session });
 		}
+		std::cout << "[ResourceServer] New connection accepted, session_id=" << new_session->GetSessionId()
+			<< " remote=" << new_session->GetSocket().remote_endpoint() << std::endl;
 		new_session->Start();
 	}
 	else {
@@ -106,12 +108,12 @@ void Server::HandleAccept(std::shared_ptr<Session> new_session, const boost::sys
 }
 
 void Server::Stop() {
-	_acceptor.close(); // ¹Ø±Õ¼àÌý£¬²»ÔÙ½ÓÊÕÐÂÓÃ»§
-	_timer.cancel();   // È¡Ïû¶¨Ê±Æ÷
+	_acceptor.close(); // ï¿½Ø±Õ¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ù½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½
+	_timer.cancel();   // È¡ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 
 	std::lock_guard<std::shared_mutex> lock(_mutex);
 	for (auto& pair : _sessions) {
-		pair.second->SafeClearSession(); // ÈÃÃ¿¸öÈË¶¼×ßÒ»±é Redis ÇåÀíÁ÷³Ì
+		pair.second->SafeClearSession(); // ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½Ë¶ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ Redis ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	}
 	_sessions.clear();
 }

@@ -1,17 +1,20 @@
 #include "MsgNode.h"
 
-SendNode::SendNode(const std::string& msg, short msg_len, short msg_id) :MsgNode(HEAD_ID_LEN + HEAD_DATA_LEN + msg_len)
+SendNode::SendNode(const std::string& msg, int msg_len, short msg_id) :MsgNode(HEAD_ID_LEN + HEAD_DATA_LEN + msg_len)
 {
 	this->_msg_id = msg_id;
-	short msg_id_net = boost::asio::detail::socket_ops::host_to_network_short(msg_id);
-	short msg_len_net = boost::asio::detail::socket_ops::host_to_network_short(msg_len);
 
-	memcpy(_data, &msg_id_net, HEAD_ID_LEN);
-	memcpy(_data + HEAD_ID_LEN, &msg_len_net, HEAD_DATA_LEN);
+	// 协议头固定为 [2字节 msg_id][2字节 长度] 的大端序
+	unsigned char* p = reinterpret_cast<unsigned char*>(_data);
+	p[0] = static_cast<unsigned char>((msg_id >> 8) & 0xFF);
+	p[1] = static_cast<unsigned char>(msg_id & 0xFF);
+	p[2] = static_cast<unsigned char>((msg_len >> 8) & 0xFF);
+	p[3] = static_cast<unsigned char>(msg_len & 0xFF);
+
 	memcpy(_data + HEAD_ID_LEN + HEAD_DATA_LEN, msg.data(), msg_len);
 }
 
-RecvNode::RecvNode(short msg_len, short msg_id) :MsgNode(msg_len)
+RecvNode::RecvNode(int msg_len, short msg_id) :MsgNode(msg_len)
 {
 	this->_msg_id = msg_id;
 }

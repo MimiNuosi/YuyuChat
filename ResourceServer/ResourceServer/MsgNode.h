@@ -8,7 +8,7 @@ using boost::asio::ip::tcp;
 class MsgNode
 {
 public:
-	MsgNode(short len) :_total_len(len), _cur_len(0) {
+	MsgNode(int len) :_total_len(len), _cur_len(0) {
 		_data = new char[_total_len + 1];
 		_data[_total_len] = '\0';
 	}
@@ -21,8 +21,8 @@ public:
 		memset(_data, 0, _total_len);
 		_cur_len = 0;
 	}
-	short _total_len;
-	short _cur_len;
+	int _total_len;
+	int _cur_len;
 	short _msg_id;
 	char* _data;
 };
@@ -30,11 +30,11 @@ public:
 class SendNode :public MsgNode
 {
 public:
-	SendNode(const std::string& msg, short len, short msg_id);
+	SendNode(const std::string& msg, int len, short msg_id);
 };
 
 class RecvNode :public MsgNode
 {
 public:
-	RecvNode(short msg_len, short msg_id);
+	RecvNode(int msg_len, short msg_id);
 };

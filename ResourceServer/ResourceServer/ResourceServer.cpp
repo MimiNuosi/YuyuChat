@@ -12,7 +12,8 @@
 #include "FileSystem.h"
 #include "RedisManager.h"
 #include "MysqlManager.h"
-
+#include "LogicService.h"
+#include "FileService.h"
 int main()
 {
     try {
@@ -53,7 +54,11 @@ int main()
             });
 
         // 5. 启动 TCP 监听服务
-        Server s(io_context, static_cast<unsigned short>(std::atoi(port_str.c_str())));
+        // 注意：Server 继承 enable_shared_from_this，且 Start()/on_timer()/HandleAccept()
+        // 内部都调用 shared_from_this()，因此必须以 shared_ptr 持有并显式调用 Start()，
+        // 否则 acceptor 永不进入 async_accept 循环，连接只停留在内核 backlog 中。
+        auto s = std::make_shared<Server>(io_context, static_cast<unsigned short>(std::atoi(port_str.c_str())));
+        s->Start();
         std::cout << "ResourceServer started successfully!" << std::endl;
 
         io_context.run();

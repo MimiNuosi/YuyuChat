@@ -40,7 +40,6 @@ void LogicSystem::RegPost(std::string url, HttpHandler handler)
 
 LogicSystem::LogicSystem()
 {
-    // ��ȡ��֤��
 	RegPost("/get_verifycode", [](std::shared_ptr<HttpConnection> connection) {
 		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
 		std::cout << "receive body is " << body_str << "\n";
@@ -67,7 +66,6 @@ LogicSystem::LogicSystem()
 		return true;
 		});
 
-    // �û�ע��
     RegPost("/user_register", [](std::shared_ptr<HttpConnection> connection) {
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -89,7 +87,6 @@ LogicSystem::LogicSystem()
         auto password = src_root["password"].asString();
         auto confirm = src_root["confirm"].asString();
 
-        //�Ȳ���redis��email��Ӧ����֤���Ƿ����
         std::string  verify_code;
         bool b_get_verify = RedisManager::GetInstance()->Get(CODEPREFIX + src_root["email"].asString(), verify_code);
         if (!b_get_verify) {
@@ -129,7 +126,6 @@ LogicSystem::LogicSystem()
         return true;
         });
 
-    //���ûص��߼�
     RegPost("/reset_pwd", [](std::shared_ptr<HttpConnection> connection) {
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -150,7 +146,6 @@ LogicSystem::LogicSystem()
         auto name = src_root["user"].asString();
         auto pwd = src_root["password"].asString();
 
-        //�Ȳ���redis��email��Ӧ����֤���Ƿ����
         std::string  verify_code;
         bool b_get_verify = RedisManager::GetInstance()->Get(CODEPREFIX + src_root["email"].asString(), verify_code);
         if (!b_get_verify) {
@@ -168,7 +163,6 @@ LogicSystem::LogicSystem()
             beast::ostream(connection->_response.body()) << jsonstr;
             return true;
         }
-        //��ѯ���ݿ��ж��û����������Ƿ�ƥ��
         bool email_valid = MysqlManager::GetInstance()->CheckEmail(name, email);
         if (!email_valid) {
             std::cout << " user email not match" << std::endl;
@@ -178,7 +172,6 @@ LogicSystem::LogicSystem()
             return true;
         }
 
-        //��������Ϊ��������
         bool b_up = MysqlManager::GetInstance()->UpdatePwd(name, pwd);
         if (!b_up) {
             std::cout << " update pwd failed" << std::endl;
@@ -199,7 +192,6 @@ LogicSystem::LogicSystem()
         return true;
         });
 
-    // �û���¼�߼�
     RegPost("/user_login", [](std::shared_ptr<HttpConnection> connection) {
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -219,7 +211,6 @@ LogicSystem::LogicSystem()
         auto pwd = src_root["password"].asString();
         UserInfo userInfo;
 
-        // ��ѯ���ݿ��ж��û����������Ƿ�ƥ��
         bool pwd_valid = MysqlManager::GetInstance()->CheckPwd(email, pwd, userInfo);
         if (!pwd_valid) {
             std::cout << "user pwd not match" << std::endl;
@@ -245,6 +236,15 @@ LogicSystem::LogicSystem()
         root["token"] = reply.token();
         root["host"] = reply.host();
         root["port"] = reply.port();
+
+        // 从 GateServer 自己的配置文件读取 ResourceServer 节点的 Host 和 Port
+        auto& cfg = ConfigManager::Inst();
+        std::string res_host = cfg["ResourceServer"]["Host"];
+        std::string res_port = cfg["ResourceServer"]["Port"];
+
+        // 填入回包 JSON，客户端即可通过 res_host 和 res_port 解析
+        root["res_host"] = res_host.empty() ? "127.0.0.1" : res_host;
+        root["res_port"] = res_port.empty() ? "9090" : res_port;
 
         std::string jsonstr = root.toStyledString();
         beast::ostream(connection->_response.body()) << jsonstr;

@@ -13,96 +13,14 @@ void FileTcpManager::CloseConnection()
     emit sig_tcp_close();
 }
 
-FileTcpManager::FileTcpManager():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0),_bytes_sent(0),_pending(false)
+FileTcpManager::FileTcpManager():_host(""),_port(0),_b_recv_pending(false),
+    _message_id(0),_message_len(0),_bytes_sent(0),_pending(false),_socket(nullptr)
 {
     registerMetaType();
-    QObject::connect(&_socket, &QTcpSocket::connected, this, [&]() {
-        qDebug() << "Connected to server!";
-        emit sig_con_success(true);
-    });
 
-    QObject::connect(&_socket, &QTcpSocket::readyRead, this, [&]() {
-        // 当有数据可读时，读取所有数据
-        // 读取所有数据并追加到缓冲区
-        _buffer.append(_socket.readAll());
-
-        forever{
-            //先解析头部
-            if (!_b_recv_pending) {
-                // 检查缓冲区中的数据是否足够解析出一个消息头（消息ID + 消息长度）
-                if (_buffer.size() < FILE_UPLOAD_HEAD_LEN) {
-                    return; // 数据不够，等待更多数据
-                }
-
-                // 每次都重新创建stream
-                QDataStream stream(_buffer);
-                stream.setVersion(QDataStream::Qt_5_0);
-                stream >> _message_id >> _message_len;
-
-                _buffer.remove(0, FILE_UPLOAD_HEAD_LEN);  // 使用remove代替mid赋值
-
-                qDebug() << "Message ID:" << _message_id << ", Length:" << _message_len;
-
-            }
-
-            //buffer剩余长读是否满足消息体长度，不满足则退出继续等待接受
-            if (_buffer.size() < _message_len) {
-                _b_recv_pending = true;
-                return;
-            }
-
-            _b_recv_pending = false;
-            // 读取消息体
-            QByteArray messageBody = _buffer.mid(0, _message_len);
-            qDebug() << "receive body msg is " << messageBody;
-
-            _buffer = _buffer.mid(_message_len);
-            handleMessage(ReqID(_message_id),_message_len, messageBody);
-        }
-
-    });
-
-    QObject::connect(&_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), [&](QAbstractSocket::SocketError socketError) {
-          Q_UNUSED(socketError)
-          qDebug() << "Error:" << _socket.errorString();
-     });
-
+    // 🌟 保留线程安全的跨线程信号绑定
     QObject::connect(this, &FileTcpManager::sig_send_data, this, &FileTcpManager::slot_send_data);
-
     QObject::connect(this, &FileTcpManager::sig_tcp_close, this, &FileTcpManager::slot_tcp_close);
-
-    QObject::connect(&_socket, &QTcpSocket::disconnected, this, [&]() {
-        qDebug() << "Disconnected from server.";
-        emit sig_connection_closed();
-    });
-
-    QObject::connect(&_socket, &QTcpSocket::bytesWritten, this, [this](qint64 bytes) {
-        //更新发送数据
-        _bytes_sent += bytes;
-        //未发送完整
-        if (_bytes_sent < _current_block.size()) {
-            //继续发送
-            auto data_to_send = _current_block.mid(_bytes_sent);
-            _socket.write(data_to_send);
-            return;
-        }
-
-        //发送完全，则查看队列是否为空
-        if (_send_queue.isEmpty()) {
-            //队列为空，说明已经将所有数据发送完成，将pending设置为false，这样后续要发送数据时可以继续发送
-            _current_block.clear();
-            _pending = false;
-            _bytes_sent = 0;
-            return;
-        }
-
-        //队列不为空，则取出队首元素
-        _current_block = _send_queue.dequeue();
-        _bytes_sent = 0;
-        _pending = true;
-        qint64 w2 = _socket.write(_current_block);
-        qDebug() << "[TcpMgr] Dequeued and write() returned" << w2;
-    });
 
     initHandlers();
 }
@@ -237,6 +155,22 @@ void FileTcpManager::slot_send_data(ReqID reqid, QByteArray data)
 
     block.append(data);
 
+    bool is_connected = _socket && _socket->state() == QAbstractSocket::ConnectedState;
+
+    // socket 未建立连接（首次连接前 / 掉线后），先入队，待连接成功再补发
+    if (!is_connected) {
+        qDebug() << "[FileTcpManager] socket not connected, queue packet id =" << id
+                 << ", queue size =" << (_send_queue.size() + 1);
+        _send_queue.enqueue(block);
+
+        // 若之前已获得服务器地址且当前处于未连接状态，立即发起(重)连接
+        if (_socket && _socket->state() == QAbstractSocket::UnconnectedState && !_host.isEmpty()) {
+            qDebug() << "[FileTcpManager] auto connect before send ->" << _host << ":" << _port;
+            _socket->connectToHost(_host, _port);
+        }
+        return;
+    }
+
     //判断是否正在发送
     if (_pending) {
         //放入队列直接返回，因为目前有数据正在发送
@@ -249,19 +183,196 @@ void FileTcpManager::slot_send_data(ReqID reqid, QByteArray data)
     _bytes_sent = 0;            // ← 归零
     _pending = true;         // ← 标记正在发送
 
-    qint64 written = _socket.write(_current_block);
+    qint64 written = _socket->write(_current_block);
+    if (id == ID_HEART_BEAT_REQ) {
+        qDebug() << "[FileTcpManager] 发送心跳 write() 返回" << written << " 包长=" << _current_block.size();
+    }
+    if (written < 0) {
+        qWarning() << "[FileTcpManager] write() failed:" << _socket->errorString();
+        _pending = false;
+    }
+}
+
+void FileTcpManager::flushSendQueue()
+{
+    if (_pending) {
+        return;
+    }
+
+    if (!_socket || _socket->state() != QAbstractSocket::ConnectedState) {
+        return;
+    }
+
+    if (_send_queue.isEmpty()) {
+        return;
+    }
+
+    _current_block = _send_queue.dequeue();
+    _bytes_sent = 0;
+    _pending = true;
+    qint64 written = _socket->write(_current_block);
+    qDebug() << "[FileTcpManager] flushSendQueue write() returned" << written;
+    if (written < 0) {
+        qWarning() << "[FileTcpManager] flushSendQueue write() failed:" << _socket->errorString();
+        _pending = false;
+    }
 }
 
 void FileTcpManager::slot_tcp_connect(std::shared_ptr<ServerInfo> si)
 {
+    // 🌟 如果 socket 不存在，在当前线程（_file_tcp_thread）动态创建并挂载到 this
+    if (!_socket) {
+        initSocketHandlers();
+    }
+
     _host = si->_res_host;
     _port = static_cast<uint16_t>(si->_res_port.toUInt());
-    _socket.connectToHost(_host, _port);
+    qDebug() << "[FileTcpManager] 发起长连接 ->" << _host << ":" << _port;
+
+    // 重新登录/再次拿到服务器地址后，确保心跳与重连定时器处于运行状态
+    if (_heart_timer && !_heart_timer->isActive()) {
+        _heart_timer->start();
+    }
+
+    if (_socket->state() == QAbstractSocket::UnconnectedState) {
+        _socket->connectToHost(_host, _port);
+    }
+}
+
+void FileTcpManager::initSocketHandlers()
+{
+    _socket = new QTcpSocket(this);
+
+    connect(_socket, &QTcpSocket::connected, this, [this]() {
+        qDebug() << "[FileTcpManager] Connected to server!";
+        // 连接成功：启动心跳保活，并把断线期间积压的数据(如上传分片)补发出去
+        if (_heart_timer) {
+            _heart_timer->start();
+        }
+        emit sig_con_success(true);
+        flushSendQueue();
+    });
+
+    connect(_socket, &QTcpSocket::readyRead, this, [this]() {
+        _buffer.append(_socket->readAll());
+
+        forever {
+            if (!_b_recv_pending) {
+                if (_buffer.size() < FILE_UPLOAD_HEAD_LEN) {
+                    return;
+                }
+
+                QDataStream stream(_buffer);
+                stream.setVersion(QDataStream::Qt_5_0);
+                stream >> _message_id >> _message_len;
+
+                _buffer.remove(0, FILE_UPLOAD_HEAD_LEN);
+                qDebug() << "Message ID:" << _message_id << ", Length:" << _message_len;
+            }
+
+            if (_buffer.size() < _message_len) {
+                _b_recv_pending = true;
+                return;
+            }
+
+            _b_recv_pending = false;
+            QByteArray messageBody = _buffer.mid(0, _message_len);
+            qDebug() << "receive body msg is " << messageBody;
+
+            _buffer = _buffer.mid(_message_len);
+            handleMessage(ReqID(_message_id), _message_len, messageBody);
+        }
+    });
+
+    connect(_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), this,
+        [this](QAbstractSocket::SocketError socketError) {
+            Q_UNUSED(socketError)
+            qDebug() << "[FileTcpManager] Error:" << _socket->errorString();
+        });
+
+    connect(_socket, &QTcpSocket::disconnected, this, [this]() {
+        qDebug() << "[FileTcpManager] Disconnected from server.";
+
+        // 在途数据放回队首，待重连成功后补发
+        if (!_current_block.isEmpty()) {
+            _send_queue.prepend(_current_block);
+            _current_block.clear();
+        }
+        _bytes_sent = 0;
+        _pending = false;
+
+        emit sig_connection_closed();
+
+        // 心跳定时器保持运行：若连接意外断开，下一个心跳周期会自动重连
+        if (_socket->state() == QAbstractSocket::UnconnectedState && !_host.isEmpty()) {
+            qDebug() << "[FileTcpManager] auto reconnect after disconnect";
+            _socket->connectToHost(_host, _port);
+        }
+    });
+
+    connect(_socket, &QTcpSocket::bytesWritten, this, [this](qint64 bytes) {
+        _bytes_sent += bytes;
+        if (_bytes_sent < _current_block.size()) {
+            auto data_to_send = _current_block.mid(_bytes_sent);
+            _socket->write(data_to_send);
+            return;
+        }
+
+        if (_send_queue.isEmpty()) {
+            _current_block.clear();
+            _pending = false;
+            _bytes_sent = 0;
+            return;
+        }
+
+        _current_block = _send_queue.dequeue();
+        _bytes_sent = 0;
+        _pending = true;
+        qint64 w2 = _socket->write(_current_block);
+        qDebug() << "[TcpMgr] Dequeued and write() returned" << w2;
+    });
+
+    // 🌟 心跳定时器：每 10s 发一次心跳，保证 ResourceServer 侧会话不被 60s 超时回收。
+    // 定时器在取得服务器地址后立即启动；未连接时由它周期重连，已连接时发心跳保活。
+    _heart_timer = new QTimer(this);
+    _heart_timer->setInterval(10 * 1000);
+    connect(_heart_timer, &QTimer::timeout, this, [this]() {
+        if (_socket && _socket->state() == QAbstractSocket::ConnectedState) {
+            // 心跳无需业务数据，空 JSON 即可触发服务端刷新保活时间
+            qDebug() << "[FileTcpManager] 心跳定时器触发，当前状态=Connected，发送心跳";
+            QJsonObject jsonObj;
+            QJsonDocument doc(jsonObj);
+            SendData(ReqID::ID_HEART_BEAT_REQ, doc.toJson(QJsonDocument::Compact));
+        }
+        else if (_socket && _socket->state() == QAbstractSocket::UnconnectedState && !_host.isEmpty()) {
+            // 掉线后由心跳周期重连，连接成功后会自动补发积压数据
+            qDebug() << "[FileTcpManager] heartbeat tries to reconnect" << _host << ":" << _port;
+            _socket->connectToHost(_host, _port);
+        }
+        else {
+            qDebug() << "[FileTcpManager] 心跳定时器触发，但 socket 不在 Connected 状态，当前 state ="
+                     << (_socket ? _socket->state() : -1);
+        }
+    });
+    _heart_timer->start();
+    qDebug() << "[FileTcpManager] 心跳定时器已启动(10s)";
 }
 
 void FileTcpManager::slot_tcp_close()
 {
-    _socket.close();
+    if (_heart_timer) {
+        _heart_timer->stop();
+    }
+
+    if (_socket) {
+        _socket->close();
+    }
+
+    // 主动关闭时清空积压数据，避免重连后发送过期内容
+    _send_queue.clear();
+    _current_block.clear();
+    _bytes_sent = 0;
+    _pending = false;
 }
 
 FileTcpThread::FileTcpThread()

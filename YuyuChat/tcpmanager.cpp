@@ -6,41 +6,59 @@ TcpManager::~TcpManager(){
 }
 
 void TcpManager::CloseConnection(){
-    _socket.close();
+    if (_socket) {
+        _socket->close();
+    }
 }
 
 TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0),_bytes_sent(0),_pending(false)
 {
     registerMetaType();
 
-    QObject::connect(&_socket,&QTcpSocket::connected,this,[&](){
-        _heart_timer->start(10000);
-        qDebug()<< "Connected to server";
+    // 自连接：跨线程触发 slot_send_data（socket 实际发送在 _tcp_thread 中完成）
+    QObject::connect(this, &TcpManager::sig_send_data, this, &TcpManager::slot_send_data);
+
+    initHandlers();
+}
+
+// 🌟 socket 不再作为值成员在构造时(main线程)创建，而是在 slot_tcp_connect
+// 首次调用时、于 _tcp_thread 工作线程内以堆指针创建。这样 QTcpSocket 的线程
+// 亲和性属于工作线程，connectToHost/write 全部在同一线程执行，
+// 避免 “QObject: Cannot create children for a parent that is in a different thread” 警告。
+void TcpManager::initSocketHandlers()
+{
+    _socket = new QTcpSocket(this);
+
+    connect(_socket, &QTcpSocket::connected, this, [this]() {
+        if (_heart_timer) {
+            _heart_timer->start(10000);
+        }
+        qDebug() << "[TcpMgr] Connected to ChatServer";
         emit sig_con_success(true);
     });
 
-    QObject::connect(&_socket,&QTcpSocket::readyRead,this,[&](){
-        _buffer.append(_socket.readAll());
+    connect(_socket, &QTcpSocket::readyRead, this, [this]() {
+        _buffer.append(_socket->readAll());
         qDebug() << "[网络日志] 收到数据，当前缓冲区总长度: " << _buffer.size();
 
         forever{
-            QDataStream stream(&_buffer,QIODevice::ReadOnly);
+            QDataStream stream(&_buffer, QIODevice::ReadOnly);
             stream.setVersion(QDataStream::Qt_5_0);
             stream.setByteOrder(QDataStream::BigEndian);
 
-            if(!_b_recv_pending){
-                if(_buffer.size() < static_cast<int>(sizeof(quint16)*2)){
+            if (!_b_recv_pending) {
+                if (_buffer.size() < static_cast<int>(sizeof(quint16) * 2)) {
                     qDebug() << "[网络日志] 数据不足包头长度(4字节)，继续等待...";
                     return;
                 }
 
                 stream >> _message_id >> _message_len;
-                _buffer = _buffer.mid(sizeof(quint16)*2);
+                _buffer = _buffer.mid(sizeof(quint16) * 2);
 
                 qDebug() << "[网络日志] 解析出包头 -> 消息ID: " << _message_id << ", 负载长度: " << _message_len;
             }
 
-            if(_buffer.size() < _message_len){
+            if (_buffer.size() < _message_len) {
                 qDebug() << "[网络日志] 负载数据未接收完整 (目前 " << _buffer.size() << " / 需要 " << _message_len << ")，发生拆包，继续等待...";
                 _b_recv_pending = true;
                 return;
@@ -56,27 +74,28 @@ TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(
         }
     });
 
-    QObject::connect(&_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), this,[&](QAbstractSocket::SocketError socketError) {
-        Q_UNUSED(socketError)
-        qDebug() << "Error:" << _socket.errorString();
-    });
+    connect(_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), this,
+        [this](QAbstractSocket::SocketError socketError) {
+            Q_UNUSED(socketError)
+            qDebug() << "[TcpMgr] Error:" << _socket->errorString();
+        });
 
-    QObject::connect(&_socket, &QTcpSocket::disconnected, this, [&]() {
-        _heart_timer->stop();
-        qDebug() << "Disconnected from server.";
+    connect(_socket, &QTcpSocket::disconnected, this, [this]() {
+        if (_heart_timer) {
+            _heart_timer->stop();
+        }
+        qDebug() << "[TcpMgr] Disconnected from ChatServer.";
         emit sig_connection_close();
     });
 
-    QObject::connect(this, &TcpManager::sig_send_data, this, &TcpManager::slot_send_data);
-
-    QObject::connect(&_socket, &QTcpSocket::bytesWritten, this, [this](qint64 bytes) {
+    connect(_socket, &QTcpSocket::bytesWritten, this, [this](qint64 bytes) {
         //更新发送数据
         _bytes_sent += bytes;
         //未发送完整
         if (_bytes_sent < _current_block.size()) {
             //继续发送
             auto data_to_send = _current_block.mid(_bytes_sent);
-            _socket.write(data_to_send);
+            _socket->write(data_to_send);
             return;
         }
 
@@ -93,11 +112,9 @@ TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(
         _current_block = _send_queue.dequeue();
         _bytes_sent = 0;
         _pending = true;
-        qint64 w2 = _socket.write(_current_block);
+        qint64 w2 = _socket->write(_current_block);
         qDebug() << "[TcpMgr] Dequeued and write() returned" << w2;
     });
-
-    initHandlers();
 }
 
 void TcpManager::initHandlers()
@@ -649,6 +666,11 @@ void TcpManager::registerMetaType()
 
 void TcpManager::slot_tcp_connect(std::shared_ptr<ServerInfo> si)
 {
+    if (!_socket) {
+        // socket 在本线程(_tcp_thread)中创建，使线程亲和性与本对象一致
+        initSocketHandlers();
+    }
+
     if (!_heart_timer) {
         _heart_timer = new QTimer(this);
         connect(_heart_timer, &QTimer::timeout, this, [this]() {
@@ -663,7 +685,10 @@ void TcpManager::slot_tcp_connect(std::shared_ptr<ServerInfo> si)
     }
     _host = si->_chat_host;
     _port = static_cast<uint16_t>(si->_chat_port.toUInt());
-    _socket.connectToHost(_host, _port);
+
+    if (_socket->state() == QAbstractSocket::UnconnectedState) {
+        _socket->connectToHost(_host, _port);
+    }
     qDebug() << "[网络路由] 准备连接 ChatServer，目标 IP:" << _host << " 目标端口:" << _port;
 }
 
@@ -681,8 +706,17 @@ void TcpManager::slot_send_data(ReqID reqid, QByteArray data)
 
     block.append(data);
 
+    if (!_socket || _socket->state() != QAbstractSocket::ConnectedState) {
+        // 连接未就绪时丢弃，避免对空 socket 写入触发崩溃/警告
+        qWarning() << "[TcpMgr] socket not connected, drop packet id =" << id;
+        _current_block.clear();
+        _bytes_sent = 0;
+        _pending = false;
+        return;
+    }
+
     //判断是否正在发送
-        if (_pending) {
+    if (_pending) {
         //放入队列直接返回，因为目前有数据正在发送
         _send_queue.enqueue(block);
         return;
@@ -693,7 +727,11 @@ void TcpManager::slot_send_data(ReqID reqid, QByteArray data)
     _bytes_sent = 0;            // ← 归零
     _pending = true;         // ← 标记正在发送
 
-    qint64 written = _socket.write(_current_block);
+    qint64 written = _socket->write(_current_block);
+    if (written < 0) {
+        qWarning() << "[TcpMgr] write() failed:" << _socket->errorString();
+        _pending = false;
+    }
 }
 
 TcpThread::TcpThread()

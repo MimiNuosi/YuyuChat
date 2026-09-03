@@ -11,6 +11,7 @@
 #include <memory>
 #include <QThread>
 #include <QQueue>
+#include <QTimer>
 #include <memory>
 #include "global.h"
 
@@ -38,8 +39,11 @@ private:
     void initHandlers();
     void handleMessage(ReqID id,int len,QByteArray data);
     void registerMetaType();
+    void initSocketHandlers();
+    void flushSendQueue();
 
-    QTcpSocket _socket;
+    QTcpSocket* _socket = nullptr;
+    QTimer* _heart_timer = nullptr;
     QString _host;
     uint16_t _port;
     QByteArray _buffer;

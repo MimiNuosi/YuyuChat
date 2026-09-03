@@ -37,7 +37,7 @@ UserInfoPage::UserInfoPage(QWidget *parent) :
     ui->name_edit->setText(name);
     ui->desc_edit->setText(desc);
 
-    connect(ui->up_button, &QPushButton::clicked, this, &UserInfoPage::on_up_btn_clicked);
+    connect(ui->up_button, &QPushButton::clicked, this, &UserInfoPage::slot_upload_avatar);
     connect(ui->submit_button, &QPushButton::clicked, this, &UserInfoPage::on_submit_button_clicked);
 }
 
@@ -53,7 +53,7 @@ QString UserInfoPage::generateUniqueIconName() {
 }
 
 // 点击上传：裁剪、本地保存、并发出第 1 个分片
-void UserInfoPage::on_up_btn_clicked()
+void UserInfoPage::slot_upload_avatar()
 {
     // 1. 选择图片文件
     QString filename = QFileDialog::getOpenFileName(

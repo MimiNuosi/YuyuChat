@@ -781,7 +781,7 @@ bool MysqlDAO::AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_da
             pstmt->setInt(5, msg->status); // 对应第 5 个占位符
             pstmt->executeUpdate();
 
-            // 2. 取 LAST_INSERT_ID()
+            //  取 LAST_INSERT_ID()
             std::unique_ptr<sql::Statement> keyStmt(
                 conn->createStatement()
             );

@@ -452,7 +452,12 @@ void ChatDialog::slot_item_clicked(QListWidgetItem *item)
         auto chat_wid = qobject_cast<ChatUserWid*>(customItem);
         if (!chat_wid) return;
 
-        auto thread_data = chat_wid->GetChatInfo(); // 获取该行绑定的 ChatThreadData
+        auto thread_info = chat_wid->GetChatInfo();
+        if(!thread_info) return;
+
+        int thread_id = thread_info->GetThreadId();
+
+        auto thread_data = UserManager::GetInstance()->GetChatThreadByThreadId(thread_id); // 获取该行绑定的 ChatThreadData
         if (!thread_data) return;
 
         ui->chat_page->SetChatData(thread_data); //  设置会话数据

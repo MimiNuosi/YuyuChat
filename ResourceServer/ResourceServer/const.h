@@ -27,31 +27,31 @@ using tcp = boost::asio::ip::tcp;
 #define HEAD_DATA_LEN 2
 #define HEAD_ID_LEN 2
 #define HEAD_TOTAL_LEN 4
-#define MAX_LENGTH  1024*2
+#define MAX_LENGTH  1024*64
 #define MAX_RECVQUE  10000
 #define MAX_SENDQUE 1000
-//4╦Жбъ╪╜╧╓вВуъ
+//4О©╫О©╫О©╫ъ╪О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 #define LOGIC_WORKER_COUNT 4
-//4╦Жнд╪Ч╧╓вВуъ
+//4О©╫О©╫О©╫д╪О©╫О©╫О©╫О©╫О©╫О©╫О©╫
 #define FILE_WORKER_COUNT 4
-//4╦Жобть╧╓вВуъ
+//4О©╫О©╫О©╫О©╫О©╫ь╧О©╫О©╫О©╫О©╫О©╫
 #define DOWN_LOAD_WORKER_COUNT	4
 #define MAX_FILE_LEN 1024*32
 
 enum ErrorCodes {
 	Success = 0,
 
-	// 1000 ~ 1099: м╗сцсК╪Ьх╗╢МнС
+	// 1000 ~ 1099: м╗О©╫О©╫О©╫О©╫О©╫х╗О©╫О©╫О©╫О©╫
 	Error_Json = 1001,
 	RPCFailed = 1002,
 	TokenInvalid = 1010,
 	UidInvalid = 1011,
 
-	// 1100 ~ 1199: ChatServer в╗йТр╣нЯ╢МнС
+	// 1100 ~ 1199: ChatServer в╗О©╫О©╫р╣О©╫О©╫О©╫О©╫О©╫
 	CREATE_CHAT_FAILED = 1101,
 	LOAD_CHAT_FAILED = 1102,
 
-	// 1200 ~ 1299: ResourceServer в╗йТнд╪Ч╢МнС
+	// 1200 ~ 1299: ResourceServer в╗О©╫О©╫О©╫д╪О©╫О©╫О©╫О©╫О©╫
 	FileNotExists = 1201,
 	FileSaveRedisFailed = 1202,
 	CreateFilePathFailed = 1203,
@@ -66,9 +66,9 @@ enum ErrorCodes {
 };
 
 enum MSG_IDS {
-    // ================= 1001 ~ 1030: адлЛсКсц╩╖пеаН (ChatServer) =================
-    MSG_CHAT_LOGIN = 1005, // сц╩╖╣гб╪
-    MSG_CHAT_LOGIN_RSP = 1006, // сц╩╖╣гб╪╩ь╟Э
+    // ================= 1001 ~ 1030: О©╫О©╫О©╫О©╫О©╫О©╫О©╫ц╩О©╫О©╫О©╫О©╫О©╫ (ChatServer) =================
+    MSG_CHAT_LOGIN = 1005, // О©╫ц╩О©╫О©╫О©╫б╪
+    MSG_CHAT_LOGIN_RSP = 1006, // О©╫ц╩О©╫О©╫О©╫б╪О©╫ь╟О©╫
     ID_SEARCH_USER_REQ = 1007,
     ID_SEARCH_USER_RSP = 1008,
     ID_ADD_FRIEND_REQ = 1009,
@@ -90,24 +90,24 @@ enum MSG_IDS {
     ID_LOAD_CHAT_MSG_REQ = 1029,
     ID_LOAD_CHAT_MSG_RSP = 1030,
 
-    // ================= 1031 ~ 1060: нд╪ЧсК╤Юц╫лЕвйт╢╢╚йД (ResourceServer) =================
-    ID_UPLOAD_HEAD_ICON_REQ = 1031, // ио╢╚м╥оЯгКгС
-    ID_UPLOAD_HEAD_ICON_RSP = 1032, // ио╢╚м╥оЯ╩ь╦╢
-    ID_DOWN_LOAD_FILE_REQ = 1033, // обтьнд╪ЧгКгС
-    ID_DOWN_LOAD_FILE_RSP = 1034, // обтьнд╪Ч╩ь╦╢
+    // ================= 1031 ~ 1060: О©╫д╪О©╫О©╫О©╫О©╫ц╫О©╫О©╫О©╫О©╫т╢О©╫О©╫О©╫О©╫ (ResourceServer) =================
+    ID_UPLOAD_HEAD_ICON_REQ = 1031, // О©╫о╢О©╫м╥О©╫О©╫О©╫О©╫О©╫О©╫
+    ID_UPLOAD_HEAD_ICON_RSP = 1032, // О©╫о╢О©╫м╥О©╫О©╫ь╦О©╫
+    ID_DOWN_LOAD_FILE_REQ = 1033, // О©╫О©╫О©╫О©╫О©╫д╪О©╫О©╫О©╫О©╫О©╫
+    ID_DOWN_LOAD_FILE_RSP = 1034, // О©╫О©╫О©╫О©╫О©╫д╪О©╫О©╫ь╦О©╫
     ID_IMG_CHAT_MSG_REQ = 1035,
     ID_IMG_CHAT_MSG_RSP = 1036,
-    ID_IMG_CHAT_UPLOAD_REQ = 1037, // ио╢╚адлЛм╪ф╛вйт╢
-    ID_IMG_CHAT_UPLOAD_RSP = 1038, // ио╢╚адлЛм╪ф╛╩ь╦╢
-    ID_NOTIFY_IMG_CHAT_MSG_REQ = 1039, // м╗ж╙сц╩╖м╪ф╛оШо╒
-    ID_FILE_INFO_SYNC_REQ = 1041, // нд╪Чпео╒м╛╡╫гКгС
-    ID_FILE_INFO_SYNC_RSP = 1042, // нд╪Чпео╒м╛╡╫╩ь╦╢
-    ID_IMG_CHAT_CONTINUE_UPLOAD_REQ = 1043, // пЬ╢╚адлЛм╪ф╛гКгС
-    ID_IMG_CHAT_CONTINUE_UPLOAD_RSP = 1044, // пЬ╢╚адлЛм╪ф╛╩ь╦╢
-    ID_IMG_CHAT_DOWN_INFO_SYNC_REQ = 1045, // ╩Ях║адлЛм╪ф╛обтьм╛╡╫пео╒
-    ID_IMG_CHAT_DOWN_INFO_SYNC_RSP = 1046, // ╩Ях║адлЛм╪ф╛обтьм╛╡╫пео╒╩ь╦╢
-    ID_IMG_CHAT_DOWN_REQ = 1047, // адлЛм╪ф╛обтьгКгС
-    ID_IMG_CHAT_DOWN_RSP = 1048, // адлЛм╪ф╛обть╩ь╦╢
+    ID_IMG_CHAT_UPLOAD_REQ = 1037, // О©╫о╢О©╫О©╫О©╫О©╫О©╫м╪ф╛О©╫О©╫т╢
+    ID_IMG_CHAT_UPLOAD_RSP = 1038, // О©╫о╢О©╫О©╫О©╫О©╫О©╫м╪ф╛О©╫ь╦О©╫
+    ID_NOTIFY_IMG_CHAT_MSG_REQ = 1039, // м╗ж╙О©╫ц╩О©╫м╪ф╛О©╫О©╫о╒
+    ID_FILE_INFO_SYNC_REQ = 1041, // О©╫д╪О©╫О©╫О©╫о╒м╛О©╫О©╫О©╫О©╫О©╫О©╫
+    ID_FILE_INFO_SYNC_RSP = 1042, // О©╫д╪О©╫О©╫О©╫о╒м╛О©╫О©╫О©╫ь╦О©╫
+    ID_IMG_CHAT_CONTINUE_UPLOAD_REQ = 1043, // О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫м╪ф╛О©╫О©╫О©╫О©╫
+    ID_IMG_CHAT_CONTINUE_UPLOAD_RSP = 1044, // О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫м╪ф╛О©╫ь╦О©╫
+    ID_IMG_CHAT_DOWN_INFO_SYNC_REQ = 1045, // О©╫О©╫х║О©╫О©╫О©╫О©╫м╪ф╛О©╫О©╫О©╫О©╫м╛О©╫О©╫О©╫О©╫о╒
+    ID_IMG_CHAT_DOWN_INFO_SYNC_RSP = 1046, // О©╫О©╫х║О©╫О©╫О©╫О©╫м╪ф╛О©╫О©╫О©╫О©╫м╛О©╫О©╫О©╫О©╫о╒О©╫ь╦О©╫
+    ID_IMG_CHAT_DOWN_REQ = 1047, // О©╫О©╫О©╫О©╫м╪ф╛О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫
+    ID_IMG_CHAT_DOWN_RSP = 1048, // О©╫О©╫О©╫О©╫м╪ф╛О©╫О©╫О©╫ь╩ь╦О©╫
 
     ID_TEST_MSG_REQ = 1051,
     ID_TEST_MSG_RSP = 1052,
@@ -134,9 +134,9 @@ constexpr const char* USER_BASE_INFO = "ubaseinfo_";
 constexpr const char* LOGIN_COUNT = "logincount";
 constexpr const char* LOCK_PREFIX = "lock_";
 constexpr const char* USER_SESSION_PREFIX = "usession_";
-//╥ж╡╪й╫кЬ╣дЁжспй╠╪Д
+//О©╫ж╡О©╫й╫О©╫О©╫О©╫дЁО©╫О©╫О©╫й╠О©╫О©╫
 constexpr const int LOCK_TIME_OUT = 10;
-//╥ж╡╪й╫кЬ╣джьйтй╠╪Д
+//О©╫ж╡О©╫й╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫О©╫й╠О©╫О©╫
 constexpr const int ACQUIRE_TIME_OUT = 5;
-//пдлЬЦпж╣ё╗цКё╘
+//О©╫О©╫О©╫О©╫О©╫О©╫ж╣О©╫О©╫О©╫Кё╘
 constexpr const int HEART_BEAT_THRESHOLD = 60;

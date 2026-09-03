@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -NoProfile -Command '$c = New-Object System.Net.Sockets.TcpClient(\"\"127.0.0.1\"\",9090); $s = $c.GetStream(); $bytes = [byte[]](0x03,0xff,0x00,0x02,0x7b,0x7d); $s.Write($bytes,0,$bytes.Length); $s.Flush(); Start-Sleep -Milliseconds 800; $c.Close(); Write-Output \"\"sent heartbeat frame\"\"')"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -10,10 +10,6 @@
 #include "RedisManager.h"
 #include "UserManager.h"
 #include "ChatGrpcClient.h"
-namespace {
-    std::map<int, std::shared_ptr<UserInfo>> g_users;
-    std::mutex g_users_mtx;
-}
 
 static int64_t getCurrentTimestamp() {
     auto now = std::chrono::system_clock::now();
@@ -22,52 +18,55 @@ static int64_t getCurrentTimestamp() {
 
 bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo) {
     std::cout << "[追踪] GetBaseInfo 开始执行, UID: " << uid << std::endl;
-    std::lock_guard<std::mutex> lock(g_users_mtx);
     std::string info_str = "";
+
+    // 1. 优先从 Redis 获取
     bool success = RedisManager::GetInstance()->Get(base_key, info_str);
     if (userinfo == nullptr) {
         userinfo = std::make_shared<UserInfo>();
     }
+
     if (success) {
         std::cout << "[追踪] 命中 Redis 缓存" << std::endl;
         Json::Reader reader;
         Json::Value root;
-        reader.parse(info_str, root);
-        userinfo->uid = root["uid"].asInt();
-        userinfo->name = root["name"].asString();
-        userinfo->password = root["password"].asString();
-        userinfo->email = root["email"].asString();
-        userinfo->nick = root["nick"].asString();
-        userinfo->desc = root["desc"].asString();
-        userinfo->sex = root["sex"].asInt();
-        userinfo->icon = root["icon"].asString();
-    }
-    else {
-        std::cout << "[追踪] Redis 缓存未命中，开始查询 MySQL..." << std::endl;
-        std::shared_ptr<UserInfo> user_info = nullptr;
-        user_info = MysqlManager::GetInstance()->GetUser(uid);
-        if (user_info == nullptr) {
-            std::cout << "[错误] MySQL 查询不到该用户信息！" << std::endl;
-            return false;
+        if (reader.parse(info_str, root)) {
+            userinfo->uid = root["uid"].asInt();
+            userinfo->name = root["name"].asString();
+            userinfo->password = root["password"].asString();
+            userinfo->email = root["email"].asString();
+            userinfo->nick = root["nick"].asString();
+            userinfo->desc = root["desc"].asString();
+            userinfo->sex = root["sex"].asInt();
+            userinfo->icon = root["icon"].asString();
+            return true;
         }
-        userinfo = user_info;
-        Json::Value redis_root;
-        redis_root["uid"] = userinfo->uid;
-        redis_root["name"] = userinfo->name;
-        redis_root["password"] = userinfo->password;
-        redis_root["email"] = userinfo->email;
-        redis_root["nick"] = userinfo->nick;
-        redis_root["desc"] = userinfo->desc;
-        redis_root["sex"] = userinfo->sex;
-        redis_root["icon"] = userinfo->icon;
-        RedisManager::GetInstance()->Set(base_key, redis_root.toStyledString());
-        std::cout << "[追踪] MySQL 数据已回写至 Redis" << std::endl;
     }
 
-    g_users[uid] = userinfo;
-    std::cout << "[追踪] GetBaseInfo 执行完毕，成功返回" << std::endl;
+    // 2. Redis 未命中或解析失败，查询 MySQL
+    std::cout << "[追踪] Redis 缓存未命中，开始查询 MySQL..." << std::endl;
+    std::shared_ptr<UserInfo> user_info = MysqlManager::GetInstance()->GetUser(uid);
+    if (user_info == nullptr) {
+        std::cout << "[错误] MySQL 查询不到该用户信息！" << std::endl;
+        return false;
+    }
+    userinfo = user_info;
+
+    // 3. 回写 Redis
+    Json::Value redis_root;
+    redis_root["uid"] = userinfo->uid;
+    redis_root["name"] = userinfo->name;
+    redis_root["password"] = userinfo->password;
+    redis_root["email"] = userinfo->email;
+    redis_root["nick"] = userinfo->nick;
+    redis_root["desc"] = userinfo->desc;
+    redis_root["sex"] = userinfo->sex;
+    redis_root["icon"] = userinfo->icon;
+    RedisManager::GetInstance()->Set(base_key, redis_root.toStyledString());
+    std::cout << "[追踪] MySQL 数据已回写至 Redis" << std::endl;
+
     return true;
-}
+}   
 
 bool GetFriendApplyInfo(int to_uid, std::vector<std::shared_ptr<ApplyInfo>>& list) {
     //从mysql获取好友申请列表
@@ -738,7 +737,7 @@ void LoadChatMessageHandler(std::shared_ptr<Session> session, short msg_id, std:
     }
     rtvalue["last_message_id"] = res->nextLastId;
     rtvalue["load_more"] = res->loadMore;
-    rtvalue["messages"] = Json::arrayValue;
+    rtvalue["chat_datas"] = Json::arrayValue;
     for (auto& message : res->messages) {
         Json::Value  chat_data;
         chat_data["sender"] = message->sender_id;

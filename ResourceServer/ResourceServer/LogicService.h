@@ -27,7 +27,7 @@ void UploadFileHandler(std::shared_ptr<Session> session, short msg_id, const std
     auto uid_str = std::to_string(uid);
     auto file_path_str = (file_path / uid_str / name).string();
 
-    // 1. ·ÃÎÊ LogicSystem µ¥Àı»º´æÍ¬²½ÔªÊı¾İ×´Ì¬
+    // 1. ï¿½ï¿½ï¿½ï¿½ LogicSystem ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½×´Ì¬
     if (seq == 1) {
         auto file_info = std::make_shared<FileInfo>();
         file_info->_file_path_str = file_path_str;
@@ -50,7 +50,7 @@ void UploadFileHandler(std::shared_ptr<Session> session, short msg_id, const std
         file_info->_trans_size = trans_size;
     }
 
-    // 2. ¹¹Ôì»Øµ÷±Õ°ü£¬ÈÎÎñÓÉ FileWorker ÂäÅÌÍê³ÉºóÒì²½»Ø°ü
+    // 2. ï¿½ï¿½ï¿½ï¿½Øµï¿½ï¿½Õ°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ FileWorker ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½ï¿½ì²½ï¿½Ø°ï¿½
     auto callback = [session, md5, name, seq, trans_size, total_size, last, uid](const Json::Value& result) {
         Json::Value rtvalue = result;
         rtvalue["error"] = ErrorCodes::Success;
@@ -64,7 +64,7 @@ void UploadFileHandler(std::shared_ptr<Session> session, short msg_id, const std
         session->Send(rtvalue.toStyledString(), ID_UPLOAD_FILE_RSP);
         };
 
-    // 3. ¼ÆËã¹şÏ£²Û£¬Í¶µİ½øÖ¸¶¨´ÅÅÌ¹¤×÷Ïß³Ì
+    // 3. ï¿½ï¿½ï¿½ï¿½ï¿½Ï£ï¿½Û£ï¿½Í¶ï¿½İ½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½Ì¹ï¿½ï¿½ï¿½ï¿½ß³ï¿½
     std::hash<std::string> hash_fn;
     size_t hash_value = hash_fn(name);
     int index = hash_value % FILE_WORKER_COUNT;
@@ -82,7 +82,7 @@ void SyncFileHandler(std::shared_ptr<Session> session, short msg_id, const std::
     reader.parse(msg_data, root);
     auto md5 = root["md5"].asString();
 
-    // Í¨¹ıµ¥Àı»ñÈ¡ÒÑ´«ÎÄ¼ş×´Ì¬
+    // Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½Ñ´ï¿½ï¿½Ä¼ï¿½×´Ì¬
     auto file = LogicSystem::GetInstance()->GetFileInfo(md5);
     Json::Value rtvalue;
     if (!file) {
@@ -120,7 +120,7 @@ void UploadHeadIconHandler(std::shared_ptr<Session> session, short msg_id, const
     auto uid_str = std::to_string(uid);
     auto file_path_str = (file_path / uid_str / name).string();
 
-    //  1. Ê×°ü Token Ğ£Ñé£¨·ÀÎ±Ôì¼øÈ¨£©
+    //  1. ï¿½×°ï¿½ Token Ğ£ï¿½é£¨ï¿½ï¿½Î±ï¿½ï¿½ï¿½È¨ï¿½ï¿½
     if (seq == 1) {
         std::string token_key = USERTOKENPREFIX + uid_str;
         std::string token_value = "";
@@ -133,6 +133,8 @@ void UploadHeadIconHandler(std::shared_ptr<Session> session, short msg_id, const
         }
 
         auto file_info = std::make_shared<FileInfo>(seq, name, total_size, trans_size, file_path_str);
+        // åˆ†ç‰‡ç»­ä¼ çŠ¶æ€å¿…é¡»ç™»è®°åˆ° LogicSystem å†…å­˜è¡¨ï¼ˆseq>1 æ—¶æŒ‰ name æŸ¥è¯¢ï¼‰
+        LogicSystem::GetInstance()->AddMD5File(name, file_info);
         bool b_save = RedisManager::GetInstance()->SetFileInfo(name, file_info);
         if (!b_save) {
             Json::Value err_val;
@@ -142,7 +144,7 @@ void UploadHeadIconHandler(std::shared_ptr<Session> session, short msg_id, const
         }
     }
     else {
-        auto file_info = LogicSystem::GetInstance()->GetFileInfo(md5);
+        auto file_info = LogicSystem::GetInstance()->GetFileInfo(name);
         if (!file_info) {
             Json::Value err_val;
             err_val["error"] = ErrorCodes::FileNotExists;
@@ -154,7 +156,7 @@ void UploadHeadIconHandler(std::shared_ptr<Session> session, short msg_id, const
         RedisManager::GetInstance()->SetFileInfo(name, file_info);
     }
 
-    //  2. ¹¹Ôì»Øµ÷£ºÓÉ FileWorker ´ÅÅÌĞ´ÍêºóÕæÕı´¥·¢»Ø°ü
+    //  2. ï¿½ï¿½ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ FileWorker ï¿½ï¿½ï¿½ï¿½Ğ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø°ï¿½
     auto callback = [session, md5, name, seq, trans_size, total_size, last, uid, last_seq](const Json::Value& result) {
         Json::Value rtvalue = result;
         rtvalue["error"] = ErrorCodes::Success;
@@ -168,11 +170,13 @@ void UploadHeadIconHandler(std::shared_ptr<Session> session, short msg_id, const
         rtvalue["last_seq"] = last_seq;
         session->Send(rtvalue.toStyledString(), ID_UPLOAD_HEAD_ICON_RSP);
         if (last == 1 && rtvalue["error"].asInt() == ErrorCodes::Success) {
-            MysqlManager::GetInstance()->UpdateHeadInfo(uid, name);
+            bool res = MysqlManager::GetInstance()->UpdateHeadInfo(uid, name);
+            std::cout << "[ï¿½ï¿½ï¿½×·ï¿½ï¿½] UpdateHeadInfo Ö´ï¿½Ğ½ï¿½ï¿½: " << res
+                << " UID: " << uid << " ICON: " << name << std::endl;
         }
     };
 
-    //  3. ¼ÆËã Hash ²ÛÎ»²¢Í¶µİ¸ø FileSystem
+    //  3. ï¿½ï¿½ï¿½ï¿½ Hash ï¿½ï¿½Î»ï¿½ï¿½Í¶ï¿½İ¸ï¿½ FileSystem
     std::hash<std::string> hash_fn;
     size_t hash_value = hash_fn(name);
     int index = hash_value % FILE_WORKER_COUNT;
@@ -186,7 +190,15 @@ void UploadHeadIconHandler(std::shared_ptr<Session> session, short msg_id, const
 
 
 
-// ================= ºê×Ô¶¯×¢²áµ½ LogicSystem =================
+void HeartBeatHandler(std::shared_ptr<Session> session, short msg_id, const std::string& msg_data) {
+    // ResourceServer ä¼šè¯ä¿æ´»ï¼šæ— éœ€ä»»ä½•ä¸šåŠ¡å¤„ç†ã€‚
+    // Session åœ¨è¯»åŒ…æ—¶å·²è°ƒç”¨ UpdateHeartBeatTime() åˆ·æ–°è¶…æ—¶æ—¶é—´è½®ï¼Œ
+    // æ³¨å†Œæ­¤ç©ºå›è°ƒä»…ä¸ºé¿å… LogicSystem æ‰“å°â€œæœªæ‰¾åˆ°å›è°ƒâ€çš„é”™è¯¯æ—¥å¿—ã€‚
+    return;
+}
+
+// ================= ï¿½ï¿½ï¿½Ô¶ï¿½×¢ï¿½áµ½ LogicSystem =================
 REGISTER_LOGIC_CALL_BACK(ID_UPLOAD_HEAD_ICON_REQ, UploadHeadIconHandler)
 REGISTER_LOGIC_CALL_BACK(ID_UPLOAD_FILE_REQ, UploadFileHandler)
 REGISTER_LOGIC_CALL_BACK(ID_SYNC_FILE_REQ, SyncFileHandler)
+REGISTER_LOGIC_CALL_BACK(ID_HEART_BEAT_REQ, HeartBeatHandler)
