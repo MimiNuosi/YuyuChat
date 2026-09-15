@@ -834,7 +834,6 @@ bool MysqlDAO::UpdateHeadInfo(int64_t uid, const std::string& icon) {
         pstmt->setInt64(2, uid);
 
         int rows = pstmt->executeUpdate();
-        std::cout << "[DB 成功] UID: " << uid << " 更新头像为: " << icon << "，受影响行数: " << rows << std::endl;
         return rows >= 0;
     }
     catch (sql::SQLException& e) {

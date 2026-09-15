@@ -26,14 +26,7 @@ void ChatUserWid::SetChatInfo(std::shared_ptr<ChatThreadData> chat_data)
     auto other_info = UserManager::GetInstance()->GetFriendById(other_id);
 
     // 加载图片
-    QPixmap pixmap = Utils::GetAvatarPixmap(other_info->_icon);
-    if (pixmap.isNull()) {
-        pixmap.load(":/res/head_1.jpg");
-    }
-
-    // 设置图片自动缩放
-    ui->icon_label->setPixmap(pixmap.scaled(ui->icon_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    ui->icon_label->setScaledContents(true);
+    Utils::LoadAvatarOrDownload(other_info->_icon, ui->icon_label);
 
     ui->user_name_label->setText(other_info->_name);
     ui->user_chat_label->setText(other_info->_last_msg);

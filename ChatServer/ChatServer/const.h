@@ -141,3 +141,10 @@ constexpr const int LOCK_TIME_OUT = 10;
 constexpr const int ACQUIRE_TIME_OUT = 5;
 //心跳阈值（秒）
 constexpr const int HEART_BEAT_THRESHOLD = 60;
+
+enum MsgStatus {
+    UN_READ = 0,  //对方未读
+    SEND_FAILED = 1,  //发送失败
+    READED = 2,  //对方已读
+    UN_UPLOAD = 3 //未上传完成
+};

@@ -1,6 +1,7 @@
 #include "tcpmanager.h"
 #include <QAbstractSocket>
 #include "usermanager.h"
+#include "filetcpmanager.h"
 TcpManager::~TcpManager(){
 
 }
@@ -21,7 +22,7 @@ TcpManager::TcpManager() :_host(""),_port(0),_b_recv_pending(false),_message_id(
     initHandlers();
 }
 
-// 🌟 socket 不再作为值成员在构造时(main线程)创建，而是在 slot_tcp_connect
+// socket 不再作为值成员在构造时(main线程)创建，而是在 slot_tcp_connect
 // 首次调用时、于 _tcp_thread 工作线程内以堆指针创建。这样 QTcpSocket 的线程
 // 亲和性属于工作线程，connectToHost/write 全部在同一线程执行，
 // 避免 “QObject: Cannot create children for a parent that is in a different thread” 警告。
@@ -608,6 +609,90 @@ void TcpManager::initHandlers()
 
         emit sig_load_chat_msg(thread_id, last_msg_id, load_more, chat_datas);
     });
+
+_handlers.insert(ID_IMG_CHAT_MSG_RSP, [this](ReqID id, int len, QByteArray data) {
+        Q_UNUSED(len);
+        qDebug() << "handle id is " << id << " data is " << data;
+        // 将QByteArray转换为QJsonDocument
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        // 检查转换是否成功
+        if (jsonDoc.isNull()) {
+            qDebug() << "Failed to create QJsonDocument.";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        if (!jsonObj.contains("error")) {
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "parse create private chat json parse failed " << err;
+            return;
+        }
+
+        int err = jsonObj["error"].toInt();
+        if (err != ErrorCodes::SUCCESS) {
+            qDebug() << "get create private chat failed, error is " << err;
+            return;
+        }
+
+        qDebug() << "Receive create private chat rsp Success";
+
+        //收到消息后转发给页面
+        auto thread_id = jsonObj["thread_id"].toInt();
+        auto unique_id = jsonObj["unique_id"].toString();
+        auto unique_name = jsonObj["unique_name"].toString();
+
+        auto sender = jsonObj["fromuid"].toInt();
+        auto msg_id = jsonObj["message_id"].toInt();
+        QString chat_time = jsonObj["chat_time"].toString();
+        int status = jsonObj["status"].toInt();
+
+        auto file_info = UserManager::GetInstance()->GetTransFileByName(unique_name);
+
+        auto chat_data = std::make_shared<ImgChatData>(file_info, unique_id, thread_id, ChatFormType::PRIVATE,
+            ChatMsgType::PIC, sender, status, chat_time);
+
+        //发送信号通知界面
+        emit sig_chat_img_rsp(thread_id, chat_data);
+
+        QFile file(file_info->_text_or_url);
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << "Could not open file:" << file.errorString();
+            return;
+        }
+
+        file.seek(file_info->_current_size);
+        auto buffer = file.read(MAX_FILE_LEN);
+        qDebug() << "buffer is " << buffer;
+        //将文件内容转换为base64编码
+        QString base64Data = buffer.toBase64();
+        QJsonObject file_obj;
+        file_obj["name"] = file_info->_unique_name;
+        file_obj["unique_id"] = unique_id;
+        file_obj["seq"] = file_info->_seq;
+        file_info->_current_size = buffer.size() + (file_info->_seq - 1) * MAX_FILE_LEN;
+        file_obj["trans_size"] = file_info->_current_size;
+        file_obj["total_size"] = file_info->_total_size;
+        file_obj["token"] = UserManager::GetInstance()->GetToken();
+        file_obj["md5"] = file_info->_md5;
+        file_obj["uid"] = UserManager::GetInstance()->GetUid();
+        file_obj["data"] = base64Data;
+
+        if (buffer.size() + (file_info->_seq - 1) * MAX_FILE_LEN >= file_info->_total_size) {
+            file_obj["last"] = 1;
+        }
+        else {
+            file_obj["last"] = 0;
+        }
+
+        //发送文件  todo 留作以后收到服务器返回消息后再发送
+        QJsonDocument doc_file(file_obj);
+        QByteArray fileData = doc_file.toJson(QJsonDocument::Compact);
+
+        //发送消息给ResourceServer
+        FileTcpManager::GetInstance()->SendData(ReqID::ID_IMG_CHAT_UPLOAD_REQ, fileData);
+    });
 }
 
 
@@ -658,6 +743,9 @@ void TcpManager::registerMetaType()
 
     qRegisterMetaType<ChatThreadData>("ChatThreadData");
     qRegisterMetaType<std::shared_ptr<ChatThreadData>>("std::shared_ptr<ChatThreadData>");
+
+    qRegisterMetaType<ImgChatData>("ImgChatData");
+    qRegisterMetaType<std::shared_ptr<ImgChatData>>("std::shared_ptr<ImgChatData>");
 
     // 注册跨线程信号使用的 vector 集合
     qRegisterMetaType<std::vector<std::shared_ptr<TextChatData>>>("std::vector<std::shared_ptr<TextChatData>>");

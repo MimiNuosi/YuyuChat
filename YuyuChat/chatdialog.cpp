@@ -4,6 +4,7 @@
 #include "loadingdialog.h"
 #include "tcpmanager.h"
 #include "usermanager.h"
+#include "filetcpmanager.h"
 #include "searchlist.h"
 #include <QRandomGenerator>
 #include <QAction>
@@ -57,10 +58,7 @@ ChatDialog::ChatDialog(QWidget *parent)
     ShowSearch(false);
 
     QString head_icon = UserManager::GetInstance()->GetIcon();
-    QPixmap pixmap = Utils::GetAvatarPixmap(head_icon);
-    QPixmap scaledPixmap = pixmap.scaled(ui->side_head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    ui->side_head_label->setPixmap(scaledPixmap);
-    ui->side_head_label->setScaledContents(true);
+    Utils::LoadAvatarOrDownload(UserManager::GetInstance()->GetIcon(), ui->side_head_label);
 
     ui->side_chat_label->setProperty("state","normal");
 
@@ -102,7 +100,19 @@ ChatDialog::ChatDialog(QWidget *parent)
     connect(TcpManager::GetInstance().get(),&TcpManager::sig_create_private_chat,this,&ChatDialog::slot_create_private_chat);
     connect(TcpManager::GetInstance().get(), &TcpManager::sig_load_chat_msg, this, &ChatDialog::slot_load_chat_msg);
     connect(TcpManager::GetInstance().get(), &TcpManager::sig_chat_msg_rsp, this, &ChatDialog::slot_add_chat_msg);
+    connect(TcpManager::GetInstance().get(), &TcpManager::sig_chat_img_rsp, this, &ChatDialog::slot_add_img_msg);
     connect(ui->user_info_page, &UserInfoPage::sig_reset_head, this, &ChatDialog::slot_reset_head);
+    connect(FileTcpManager::GetInstance().get(), &FileTcpManager::sig_reset_label_icon,
+            this, [](QString path) {
+                UserManager::GetInstance()->ResetLabelIcon(path);
+            }, Qt::QueuedConnection);
+    connect(FileTcpManager::GetInstance().get(), &FileTcpManager::sig_download_img_finished,
+            this, [this](int msg_id, QString clientPath) {
+                auto msg_info = std::make_shared<MsgInfo>();
+                msg_info->_msg_id = msg_id;
+                msg_info->_msg_type = MsgType::IMG_MSG;
+                ui->chat_page->DownloadFileFinished(msg_info, clientPath);
+            }, Qt::QueuedConnection);
 
     loadChatList();
 }
@@ -521,6 +531,39 @@ void ChatDialog::slot_text_chat_msg(std::vector<std::shared_ptr<TextChatData>> c
     }
 }
 
+void ChatDialog::slot_img_chat_msg(std::shared_ptr<ImgChatData> imgchat) {
+    //更新数据
+    auto thread_id = imgchat->GetThreadId();
+    auto thread_data = UserManager::GetInstance()->GetChatThreadByThreadId(thread_id);
+    thread_data->AddMsg(imgchat);
+    if (_cur_chat_thread_id != thread_id) {
+        return;
+    }
+
+    ui->chat_page->AppendChatMsg(imgchat);
+
+    // 计算本地存储路径并主动向 ResourceServer 发起切片拉取
+    auto msg_info = imgchat->_msg_info;
+    if (!msg_info) return;
+
+    QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QString save_dir = storageDir + "/user/" + QString::number(UserManager::GetInstance()->GetUid())
+                       + "/chatimg/" + QString::number(imgchat->GetSendUid());
+    QDir().mkpath(save_dir);
+    QString full_client_path = save_dir + "/" + msg_info->_unique_name;
+
+    auto download = std::make_shared<DownloadInfo>();
+    download->_name = msg_info->_unique_name;
+    download->_seq = 1;
+    download->_client_path = full_client_path;
+
+    // 把任务登记到 UserManager 方便收到切片时按 name 索引
+    UserManager::GetInstance()->AddDownloadFile(msg_info->_unique_name, download);
+
+    // 发起下载请求包
+    FileTcpManager::GetInstance()->SendDownloadInfo(download);
+}
+
 void ChatDialog::showLoadingDlg(bool b_show) {
     if (b_show) {
         if (!_loading_dlg) {
@@ -722,7 +765,7 @@ void ChatDialog::slot_add_chat_msg(int thread_id, std::vector<std::shared_ptr<Te
 
         // 2. 如果正好是当前正在浏览的窗口，刷新气泡发送状态
         if (_cur_chat_thread_id == thread_id) {
-            ui->chat_page->UpdateChatStatus(msg->GetUniqueId(), msg->GetStatus());
+            ui->chat_page->UpdateChatStatus(msg);
         }
     }
 
@@ -740,48 +783,25 @@ void ChatDialog::slot_add_chat_msg(int thread_id, std::vector<std::shared_ptr<Te
 void ChatDialog::slot_reset_head()
 {
     QString head_icon = UserManager::GetInstance()->GetIcon();
-    if (head_icon.isEmpty()) {
-        return;
-    }
-
-    // 1. 如果是默认头像（:/res/head_X.jpg 格式），直接走资源加载
-    QRegularExpression regex("^:/res/head_(\\d+)\\.jpg$");
-    QRegularExpressionMatch match = regex.match(head_icon);
-    if (match.hasMatch()) {
-        QPixmap pixmap(head_icon);
-        if (!pixmap.isNull()) {
-            QPixmap scaledPixmap = pixmap.scaled(ui->side_head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            ui->side_head_label->setPixmap(scaledPixmap);
-            ui->side_head_label->setScaledContents(true);
-        }
-        return;
-    }
-
-    // 2. 如果是用户上传的自定义头像，去本地用户私有缓存目录查找
-    QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    auto uid = UserManager::GetInstance()->GetUid();
-    QDir avatarsDir(storageDir + "/user/" + QString::number(uid) + "/avatars");
-
-    auto file_name = QFileInfo(head_icon).fileName();
-    QString avatarPath = avatarsDir.filePath(file_name);
-
-    QPixmap pixmap(avatarPath);
-    if (!pixmap.isNull()) {
-        // 本地存在，直接缩放并绘制到左侧栏头像控件
-        QPixmap scaledPixmap = pixmap.scaled(ui->side_head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        ui->side_head_label->setPixmap(scaledPixmap);
-        ui->side_head_label->setScaledContents(true);
-    } else {
-        qWarning() << "[头像加载] 本地未找到该头像文件，准备加载默认头像并触发下载:" << avatarPath;
-        // 先用默认头像兜底显示，避免界面出现白块或黑底
-        QPixmap defaultPix(":/res/head_1.jpg");
-        ui->side_head_label->setPixmap(defaultPix.scaled(ui->side_head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-
-        // 如果已实现远程拉取，可在此处触发 FileServer 下载
-        // LoadHeadIcon(avatarPath, ui->side_head_label, file_name, "self_icon");
-    }
+    // 本地有图直接展示，无图自动进队列下载并在下载完成后自动刷到 side_head_label
+    Utils::LoadAvatarOrDownload(head_icon, ui->side_head_label);
 }
 
+void ChatDialog::slot_add_img_msg(int thread_id, std::shared_ptr<ImgChatData> img_msg) {
+    auto chat_data = UserManager::GetInstance()->GetChatThreadByThreadId(thread_id);
+    if (chat_data == nullptr) {
+        return;
+    }
+
+    chat_data->MoveMsg(img_msg);
+
+    if (_cur_chat_thread_id != thread_id) {
+        return;
+    }
+
+    //更新聊天界面信息
+    ui->chat_page->UpdateChatStatus(img_msg);
+}
 void ChatDialog::loadMoreConUser()
 {
     auto friend_list = UserManager::GetInstance()->GetConListPerPage();

@@ -1,5 +1,5 @@
 #include "usermanager.h"
-
+#include <QPointer>
 UserManager::~UserManager()
 {
 
@@ -381,6 +381,82 @@ void UserManager::AddUploadFile(QString name, std::shared_ptr<QFileInfo> file_in
     std::lock_guard<std::mutex> lock(_mutex);
     _name_to_upload_info.insert(name, file_info);
 
+}
+
+bool UserManager::IsDownLoading(const QString& name) {
+    std::lock_guard<std::mutex> lock(_down_load_mtx);
+    return _name_to_download_info.contains(name);
+}
+
+void UserManager::AddDownloadFile(const QString& name, std::shared_ptr<DownloadInfo> file_info) {
+    std::lock_guard<std::mutex> lock(_down_load_mtx);
+    _name_to_download_info[name] = file_info;
+}
+
+std::shared_ptr<DownloadInfo> UserManager::GetDownloadInfo(const QString& name) {
+    std::lock_guard<std::mutex> lock(_down_load_mtx);
+    auto iter = _name_to_download_info.find(name);
+    if (iter == _name_to_download_info.end()) return nullptr;
+    return iter.value();
+}
+
+void UserManager::RmvDownloadFile(const QString& name) {
+    std::lock_guard<std::mutex> lock(_down_load_mtx);
+    _name_to_download_info.remove(name);
+}
+
+void UserManager::AddLabelToReset(const QString& path, QLabel* label) {
+    std::lock_guard<std::mutex> lock(_down_load_mtx);
+    QString clean_path = QDir::cleanPath(path);
+    _name_to_reset_labels[clean_path].append(QPointer<QLabel>(label));
+}
+
+void UserManager::ResetLabelIcon(const QString& path) {
+    std::lock_guard<std::mutex> lock(_down_load_mtx);
+    QString clean_path = QDir::cleanPath(path);
+    auto iter = _name_to_reset_labels.find(clean_path);
+    if (iter == _name_to_reset_labels.end()) return;
+
+    QPixmap pixmap(clean_path);
+    if (!pixmap.isNull()) {
+        for (const auto& label : iter.value()) {
+            if (label.isNull()) continue;
+            QPixmap scaledPixmap = pixmap.scaled(label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            label->setPixmap(scaledPixmap);
+            label->setScaledContents(true);
+        }
+    }
+    else{
+        qWarning() << "[头像加载] 下载完成但图片无法解析:" << clean_path;
+        return;                 // 不 erase，留待下次
+    }
+    _name_to_reset_labels.erase(iter);
+}
+
+void UserManager::AddTransFile(QString name, std::shared_ptr<MsgInfo> msg_info)
+{
+    std::lock_guard<std::mutex> mtx(_trans_mtx);
+    _name_to_msg_info[name] = msg_info;
+}
+
+std::shared_ptr<MsgInfo> UserManager::GetTransFileByName(QString name) {
+    std::lock_guard<std::mutex> mtx(_trans_mtx);
+    auto iter = _name_to_msg_info.find(name);
+    if (iter == _name_to_msg_info.end()) {
+        return nullptr;
+    }
+
+    return *iter;
+}
+
+void UserManager::RmvTransFileByName(QString name)
+{
+    std::lock_guard<std::mutex> mtx(_trans_mtx);
+    auto iter = _name_to_msg_info.find(name);
+    if (iter == _name_to_msg_info.end()) {
+        return ;
+    }
+    _name_to_msg_info.erase(iter);
 }
 
 UserManager::UserManager():_user_info(nullptr),

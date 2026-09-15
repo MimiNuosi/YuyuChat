@@ -139,6 +139,7 @@ public:
     ChatDataBase(int msg_id, QString unique_id, int thread_id, ChatFormType form_type, ChatMsgType msg_type,
                  QString content, int send_uid, int status, QString chat_time);\
     ChatDataBase() = default;
+    virtual ~ChatDataBase() = default;
     int GetMsgId() { return _msg_id; }
     int GetThreadId() { return _thread_id; }
     ChatFormType GetFormType() { return _form_type; }
@@ -178,25 +179,29 @@ public:
     TextChatData(int msg_id, int thread_id, ChatFormType form_type, ChatMsgType msg_type,  QString content,
                  int send_uid, int status, QString chat_time="") :
         ChatDataBase(msg_id, thread_id, form_type, msg_type, content, send_uid, status, chat_time)
-    {
-
-    }
-
+    {}
     TextChatData(QString unique_id, int thread_id, ChatFormType form_type, ChatMsgType msg_type, QString content,
                  int send_uid, int status, QString chat_time="") :
         ChatDataBase(unique_id, thread_id, form_type, msg_type, content, send_uid, status, chat_time)
-    {
-
-    }
-
+    {}
     TextChatData(int msg_id, QString unique_id, int thread_id, ChatFormType form_type, ChatMsgType msg_type, QString content,
                  int send_uid, int status, QString chat_time = "") :
         ChatDataBase(msg_id, unique_id, thread_id, form_type, msg_type, content, send_uid, status, chat_time)
-    {
+    {}
+    TextChatData() = default;
+};
+
+class ImgChatData : public ChatDataBase {
+public:
+    ImgChatData(std::shared_ptr<MsgInfo> msg_info, QString unique_id,
+                int thread_id, ChatFormType form_type, ChatMsgType msg_type,
+                int send_uid, int status, QString chat_time = ""):
+        ChatDataBase(unique_id,thread_id, form_type, msg_type, msg_info->_text_or_url,
+                     send_uid, status, chat_time), _msg_info(msg_info){
 
     }
 
-    TextChatData() = default;
+    std::shared_ptr<MsgInfo> _msg_info;
 };
 
 //聊天线程信息
@@ -228,6 +233,7 @@ public:
     int GetLastMsgId();
     QMap<QString, std::shared_ptr<ChatDataBase>>& GetMsgUnRspRef();
     void AppendUnRspMsg(QString unique_id, std::shared_ptr<ChatDataBase> base_msg);
+    std::shared_ptr<ChatDataBase> GetChatDataBase(int msg_id);
 private:
     //如果是私聊，则为对方的id；如果是群聊，则为0
     int _other_id;
@@ -269,6 +275,9 @@ Q_DECLARE_METATYPE(std::shared_ptr<ChatDataBase>)
 
 Q_DECLARE_METATYPE(TextChatData)
 Q_DECLARE_METATYPE(std::shared_ptr<TextChatData>)
+
+Q_DECLARE_METATYPE(ImgChatData)
+Q_DECLARE_METATYPE(std::shared_ptr<ImgChatData>)
 
 Q_DECLARE_METATYPE(ChatThreadInfo)
 Q_DECLARE_METATYPE(std::shared_ptr<ChatThreadInfo>)

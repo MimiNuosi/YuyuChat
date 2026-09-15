@@ -25,7 +25,7 @@ struct ApplyInfo {
         _icon(icon), _nick(nick), _sex(sex), _status(status) {}
     int _uid;
     std::string _name;
-    std::string _desc;
+    std::string _desc;  
     std::string _icon;
     std::string _nick;
     int _sex;
@@ -50,12 +50,20 @@ struct ChatMessage {
     std::string content;
     std::string chat_time;
     int status;
+    int msg_type;
 };
 
 struct PageResult {
     std::vector<std::shared_ptr<ChatMessage>> messages;
     bool loadMore;
     int64_t nextLastId;
+};
+
+enum class ChatMsgType {
+    TEXT = 0,
+    PIC = 1,
+    VIDEO = 2,
+    FILE = 3
 };
 
 class MysqlDAO

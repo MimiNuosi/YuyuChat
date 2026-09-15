@@ -54,9 +54,9 @@ void ChatItemBase::setUserName(const QString &name)
     m_pNameLabel->setText(name);
 }
 
-void ChatItemBase::setUserIcon(const QPixmap &icon)
+void ChatItemBase:: setUserIcon(const QString &icon)
 {
-    m_pIconLabel->setPixmap(icon);
+    Utils::LoadAvatarOrDownload(icon, m_pIconLabel);
 }
 
 void ChatItemBase::setWidget(QWidget *w)
@@ -93,4 +93,8 @@ void ChatItemBase::setStatus(int status)
         return;
     }
 
+}
+
+QWidget* ChatItemBase::GetBubble() {
+    return m_pBubble;
 }

@@ -121,6 +121,15 @@ void ChatThreadData::AppendUnRspMsg(QString unique_id, std::shared_ptr<ChatDataB
     _msg_unrsp_map.insert(unique_id, base_msg);
 }
 
+std::shared_ptr<ChatDataBase> ChatThreadData::GetChatDataBase(int msg_id) {
+    auto iter = _msg_map.find(msg_id);
+    if (iter == _msg_map.end()) {
+        return nullptr;
+    }
+
+    return iter.value();
+}
+
 
 QMap<QString, std::shared_ptr<ChatDataBase>>& ChatThreadData::GetMsgUnRspRef() {
     return _msg_unrsp_map;

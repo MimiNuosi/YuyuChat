@@ -3,9 +3,6 @@
 #include <QWidget>
 #include <functional>
 #include <QRegularExpression>
-#include <memory>
-#include <mutex>
-#include <iostream>
 #include <Qstyle>
 #include <QByteArray>
 #include <QJsonObject>
@@ -15,6 +12,8 @@
 #include <QTranslator>
 #include <QFile>
 #include <QSettings.h>
+#include <QLabel>
+
 extern std::function<void(QWidget*)> repolish;
 
 extern std::function<QString(QString)> xorString;
@@ -162,11 +161,46 @@ struct ServerInfo {
     int _uid;
 };
 
+enum class MsgType {
+    TEXT_MSG = 0, //文本消息
+    IMG_MSG = 1,  //图片消息
+    VIDEO_MSG = 2, //视频消息
+    FILE_MSG = 3//文件消息,
+};
+
+
+enum class TransferType {
+    None,
+    Download,  //下载
+    Upload     //上传
+};
+
+enum class TransferState {
+    None,           // 无传输
+    Downloading,    // 下载中
+    Uploading,      // 上传中
+    Paused,         // 暂停
+    Completed,      // 完成
+    Failed          // 失败
+};
+
 struct MsgInfo{
+
+    MsgInfo(MsgType msgtype, QString text_or_url, QPixmap pixmap, QString unique_name, qint64 total_size, QString md5)
+    :_msg_type(msgtype), _text_or_url(text_or_url), _preview_pix(pixmap),_unique_name(unique_name),_total_size(total_size),
+        _current_size(0),_seq(1),_md5(md5)
+    {}
     MsgInfo() = default;
-    QString msgFlag;//"text,image,file"
-    QString content;//表示文件和图像的url，文本信息
-    QPixmap pixmap;//文件和图片的缩略图
+    MsgType _msg_type;
+    QString _text_or_url;//表示文件和图像的url,文本信息
+    QPixmap _preview_pix;//文件和图片的缩略图
+    QString _unique_name; //文件唯一名字
+    qint64 _total_size; //文件总大小
+    qint64 _current_size; //传输大小
+    qint64 _seq;          //传输序号
+    QString _md5;         //文件md5
+    qint64 _msg_id = 0;                        // 关联的聊天消息 ID (用于找气泡)
+    TransferState _transfer_state = TransferState::None; // 传输状态
 };
 
 namespace Utils {
@@ -174,7 +208,9 @@ bool CheckEmailValid(const QString& email, QString& err_msg);
 bool CheckPassValid(const QString& pass, QString& err_msg);
 bool CheckUserValid(const QString& user, QString& err_msg);
 bool CheckVerifyValid(const QString& verify, QString& err_msg);
-QPixmap GetAvatarPixmap(const QString& icon_str);
+void LoadAvatarOrDownload(const QString& icon_str, QLabel* target_label);
+QString calculateFileHash(const QString& filePath);
+QString generateUniqueFileName(const QString& originalName);
 }
 
 
@@ -214,8 +250,10 @@ enum class ChatFormType {
 enum class ChatMsgType {
     TEXT = 0,
     PIC = 1,
-    FILE = 2
+    VIDEO = 2,
+    FILE = 3,
 };
+
 
 struct DownloadInfo {
     QString _name;

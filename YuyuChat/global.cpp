@@ -1,6 +1,8 @@
 #include "global.h"
 #include "usermanager.h"
+#include "filetcpmanager.h"
 #include <QStandardPaths>
+#include <QCryptographicHash>
 std::function<void(QWidget*)> repolish = [](QWidget* w){
     w->style()->unpolish(w);
     w->style()->polish(w);
@@ -57,34 +59,94 @@ bool CheckVerifyValid(const QString& verify, QString& err_msg) {
     return true;
 }
 
-QPixmap GetAvatarPixmap(const QString& icon_str) {
+void LoadAvatarOrDownload(const QString& icon_str, QLabel* target_label) {
+    if (!target_label) return;
+
+    // 1. 空或默认头像 (:/res/head_X.jpg)
     if (icon_str.isEmpty()) {
-        return QPixmap(":/res/head_1.jpg");
+        QPixmap defaultPix(":/res/head_1.jpg");
+        target_label->setPixmap(defaultPix.scaled(target_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        target_label->setScaledContents(true);
+        return;
     }
 
-    // 1. 如果是默认头像 (:/res/head_X.jpg)
     QRegularExpression regex("^:/res/head_(\\d+)\\.jpg$");
     if (regex.match(icon_str).hasMatch()) {
         QPixmap pixmap(icon_str);
-        if (!pixmap.isNull()) return pixmap;
-    }
-
-    // 2. 如果是用户自定义上传的头像，去对应 uid 的私有目录查找
-    QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    auto uid = UserManager::GetInstance()->GetUid();
-
-    // 保持与保存目录完全一致：storageDir + "/user/" + uid + "/avatars"
-    QDir avatarsDir(storageDir + "/user/" + QString::number(uid) + "/avatars");
-    if (avatarsDir.exists()) {
-        QString avatarPath = avatarsDir.filePath(QFileInfo(icon_str).fileName());
-        QPixmap pixmap(avatarPath);
         if (!pixmap.isNull()) {
-            return pixmap;
+            target_label->setPixmap(pixmap.scaled(target_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            target_label->setScaledContents(true);
+            return;
         }
     }
 
-    // 3. 兜底返回默认内置头像
-    return QPixmap(":/res/head_1.jpg");
+    // 2. 本地私有路径查找
+    QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    auto uid = UserManager::GetInstance()->GetUid();
+    QDir avatarsDir(storageDir + "/user/" + QString::number(uid) + "/avatars");
+    if (!avatarsDir.exists()) {
+        avatarsDir.mkpath(".");
+    }
+
+    QString fileName = QFileInfo(icon_str).fileName();
+    QString avatarPath = avatarsDir.filePath(fileName);
+    QPixmap pixmap(avatarPath);
+
+    // 2.1 本地已存在该图
+    if (!pixmap.isNull()) {
+        target_label->setPixmap(pixmap.scaled(target_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        target_label->setScaledContents(true);
+        return;
+    }
+
+    // 2.2 本地缺失：登记回调 QLabel + 贴默认图兜底 + 触发断点拉取
+    QPixmap defaultPix(":/res/head_1.jpg");
+    target_label->setPixmap(defaultPix.scaled(target_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    target_label->setScaledContents(true);
+
+    UserManager::GetInstance()->AddLabelToReset(avatarPath, target_label);
+
+    if (UserManager::GetInstance()->IsDownLoading(fileName)) {
+        return; // 已在下载中，无需重复请求
+    }
+
+    auto download_info = std::make_shared<DownloadInfo>();
+    download_info->_name = fileName;
+    download_info->_current_size = 0;
+    download_info->_seq = 1;
+    download_info->_total_size = 0;
+    download_info->_client_path = avatarPath;
+
+    UserManager::GetInstance()->AddDownloadFile(fileName, download_info);
+    FileTcpManager::GetInstance()->SendDownloadInfo(download_info);
 }
+
+QString calculateFileHash(const QString& filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly))
+        return QString();
+
+    QCryptographicHash hash(QCryptographicHash::Md5);
+
+    // 分块计算哈希，避免大文件占用过多内存
+    const qint64 chunkSize = 1024 * 1024; // 1MB
+    while (!file.atEnd())
+    {
+        hash.addData(file.read(chunkSize));
+    }
+    file.close();
+
+    return hash.result().toHex();
+}
+
+QString generateUniqueFileName(const QString& originalName){
+
+    QString uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QFileInfo fileInfo(originalName);
+    QString extension = fileInfo.suffix();
+    return uuid + (extension.isEmpty() ? "" : "." + extension);
+}
+
 }
 

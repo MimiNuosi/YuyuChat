@@ -65,11 +65,13 @@ public slots:
     void slot_item_clicked(QListWidgetItem* item);
     void slot_append_send_chat_msg(std::shared_ptr<TextChatData> msg);
     void slot_text_chat_msg(std::vector<std::shared_ptr<TextChatData>> chat_msgs);
+    void slot_img_chat_msg(std::shared_ptr<ImgChatData> imgchat) ;
     void slot_load_chat_thread(bool load_more, qint64 last_thread_id, std::vector<std::shared_ptr<ChatThreadInfo>> chat_threads);
     void slot_create_private_chat(int uid, int other_id, int thread_id);
     void slot_load_chat_msg(int thread_id, int msg_id, bool load_more, std::vector<std::shared_ptr<TextChatData>> msglists);
     void slot_add_chat_msg(int thread_id, std::vector<std::shared_ptr<TextChatData>> msglists);
     void slot_reset_head();
+    void slot_add_img_msg(int thread_id, std::shared_ptr<ImgChatData> img_msg);
 };
 
 #endif // CHATDIALOG_H

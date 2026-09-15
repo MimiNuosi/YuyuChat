@@ -27,10 +27,11 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
     }
 
     if (success) {
-        std::cout << "[追踪] 命中 Redis 缓存" << std::endl;
         Json::Reader reader;
         Json::Value root;
-        if (reader.parse(info_str, root)) {
+        if (reader.parse(info_str, root) && root.isMember("icon")
+            && !root["icon"].asString().empty()) {
+            std::cout << "[追踪] 命中 Redis 缓存" << std::endl;
             userinfo->uid = root["uid"].asInt();
             userinfo->name = root["name"].asString();
             userinfo->password = root["password"].asString();
@@ -41,6 +42,7 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
             userinfo->icon = root["icon"].asString();
             return true;
         }
+        std::cout << "[追踪] Redis 缓存 icon 无效，回源 MySQL 刷新" << std::endl;
     }
 
     // 2. Redis 未命中或解析失败，查询 MySQL
@@ -62,7 +64,7 @@ bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& useri
     redis_root["desc"] = userinfo->desc;
     redis_root["sex"] = userinfo->sex;
     redis_root["icon"] = userinfo->icon;
-    RedisManager::GetInstance()->Set(base_key, redis_root.toStyledString());
+    RedisManager::GetInstance()->Set(base_key, redis_root.toStyledString(), 86400);
     std::cout << "[追踪] MySQL 数据已回写至 Redis" << std::endl;
 
     return true;
@@ -548,7 +550,7 @@ void AuthFriendHandler(std::shared_ptr<Session> session, short msg_id, std::stri
     ChatGrpcClient::GetInstance()->AuthFriend(to_ip_value, auth_req);
 }
 
-void ChatTextHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
+void TextChatHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
@@ -750,11 +752,63 @@ void LoadChatMessageHandler(std::shared_ptr<Session> session, short msg_id, std:
     }
 }
 
+void ImgChatHandler(std::shared_ptr<Session> session, short msg_id, std::string msg_data) {
+        Json::Reader reader;
+        Json::Value root;
+        reader.parse(msg_data, root);
+
+        auto uid = root["fromuid"].asInt();
+        auto touid = root["touid"].asInt();
+
+        auto md5 = root["md5"].asString();
+        auto unique_name = root["name"].asString();
+        auto token = root["token"].asString();
+        auto unique_id = root["unique_id"].asString();
+        auto chat_time = root["chat_time"].asString();
+        auto status = root["status"].asInt();
+
+        Json::Value  rtvalue;
+        rtvalue["error"] = ErrorCodes::Success;
+
+        rtvalue["fromuid"] = uid;
+        rtvalue["touid"] = touid;
+        auto thread_id = root["thread_id"].asInt();
+        rtvalue["thread_id"] = thread_id;
+        rtvalue["md5"] = md5;
+        rtvalue["unique_name"] = unique_name;
+        rtvalue["unique_id"] = unique_id;
+        rtvalue["chat_time"] = chat_time;
+        rtvalue["status"] = status;
+
+        auto timestamp = getCurrentTimestamp();
+        auto chat_msg = std::make_shared<ChatMessage>();
+        chat_msg->chat_time = timestamp;
+        chat_msg->sender_id = uid;
+        chat_msg->recv_id = touid;
+        chat_msg->unique_id = unique_id;
+        chat_msg->thread_id = thread_id;
+        chat_msg->content = unique_name;
+        chat_msg->status = MsgStatus::UN_UPLOAD;
+
+		auto chat_vector = std::vector<std::shared_ptr<ChatMessage>>();
+		chat_vector.push_back(chat_msg);
+        //插入数据库
+        MysqlManager::GetInstance()->AddChatMessage(chat_vector);
+    // 无论下面逻辑如何 return，退出时必然发送回包
+    Defer defer([&session, &rtvalue]() {
+        std::string return_str = rtvalue.toStyledString();
+        session->Send(return_str, ID_IMG_CHAT_MSG_RSP);
+        });
+    // 处理图片消息的存储和转发逻辑
+    // ...
+}
+
+REGISTER_CALL_BACK(ID_IMG_CHAT_MSG_REQ, ImgChatHandler);
 REGISTER_CALL_BACK(ID_LOAD_CHAT_MSG_REQ, LoadChatMessageHandler);
 REGISTER_CALL_BACK(ID_CREATE_PRIVATE_CHAT_REQ, CreateChatThreadHandler);
 REGISTER_CALL_BACK(ID_LOAD_CHAT_THREAD_REQ, GetUserThreadsHandler);
 REGISTER_CALL_BACK(ID_HEART_BEAT_REQ, HeartBeatHandler)
-REGISTER_CALL_BACK(ID_TEXT_CHAT_MSG_REQ, ChatTextHandler)
+REGISTER_CALL_BACK(ID_TEXT_CHAT_MSG_REQ, TextChatHandler)
 REGISTER_CALL_BACK(ID_AUTH_FRIEND_REQ, AuthFriendHandler)
 REGISTER_CALL_BACK(ID_ADD_FRIEND_REQ, AddFriendHandler)
 REGISTER_CALL_BACK(ID_SEARCH_USER_REQ, ChatSearchHandler);

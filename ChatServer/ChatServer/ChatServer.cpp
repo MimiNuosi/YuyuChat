@@ -5,9 +5,8 @@
 #include "AsioIOContextPool.h"
 #include "Server.h"
 #include "ConfigManager.h"
-#include "RedisManager.h"      // 新增 Redis 头文件
-#include "ChatServiceImpl.h"   // 新增 gRPC 服务实现头文件
-#include <grpcpp/grpcpp.h>     // 新增 gRPC 基础头文件
+#include "RedisManager.h"
+#include "ChatServiceImpl.h" 
 
 bool bstop = false;
 std::condition_variable cond_quit;

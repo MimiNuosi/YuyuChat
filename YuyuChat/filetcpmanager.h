@@ -32,7 +32,7 @@ public:
     ~FileTcpManager() = default;
     void SendData(ReqID , QByteArray);
     void CloseConnection();
-    //void SendDownlowdData(std::shared_ptr<DownloadInfo> download_info,QString req_type);
+    void SendDownloadInfo(std::shared_ptr<DownloadInfo> download_info);
 
 private:
     FileTcpManager();
@@ -65,6 +65,9 @@ signals:
     void sig_tcp_close();
     void sig_con_success(bool b_success);
     void sig_connection_closed();
+    void sig_reset_label_icon(QString path);
+    void sig_update_img_progress(int msg_id, qint64 current, qint64 total);
+    void sig_download_img_finished(int msg_id, QString clientPath);
 
 public slots:
     void slot_send_data(ReqID id,QByteArray data);

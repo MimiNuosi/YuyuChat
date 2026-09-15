@@ -33,7 +33,8 @@ public:
 	std::string acquireLock(const std::string& lockName, int lockTimeout, int acquireTimeout);
 	bool releaseLock(const std::string& lockName, const std::string& identifier);
 	void DecreaseLoginCount(const std::string& serverName);
-    bool SetFileInfo(const std::string& md5, std::shared_ptr<FileInfo> file_info);
+    bool SetFileInfo(const std::string& name, std::shared_ptr<FileInfo> file_info);
+    std::shared_ptr<FileInfo> GetFileInfo(const std::string& name);
 private:
     RedisManager();
 

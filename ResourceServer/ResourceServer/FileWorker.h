@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include "ThreadPool.h"
 #include "Session.h"
-#include "FileSystem.h"
 
 class Session;
 struct FileTask {
@@ -41,16 +40,43 @@ struct FileTask {
 	int _thread_id;
 };
 
+struct DownloadTask {
+	DownloadTask(std::shared_ptr<Session> session, int uid, std::string name,
+		int seq, std::string file_path, std::string client_path,
+		std::function<void(const Json::Value&)> callback)
+		: _session(session), _uid(uid), _seq(seq), _name(name),
+		_file_path(file_path), _client_path(client_path), _callback(callback)
+	{
+	}
+	~DownloadTask() = default;
+
+	std::shared_ptr<Session> _session;
+	int _uid;
+	int _seq;
+	std::string _name;
+	std::string _file_path;
+	std::string _client_path;
+	std::function<void(const Json::Value&)> _callback;
+};
 
 class FileWorker
 {
 public:
 	FileWorker() = default;
-
 	~FileWorker() = default;
-
 	void PostTask(std::shared_ptr <FileTask> msg);
 private:
 	ThreadPool<FileTask> _thread_pool;
 	void task_callback(std::shared_ptr<FileTask> task);
+};
+
+class DownloadWorker {
+public:
+	DownloadWorker() = default;
+	~DownloadWorker() = default;
+	void PostTask(std::shared_ptr<DownloadTask> msg);
+
+private:
+	ThreadPool<DownloadTask> _thread_pool;
+	void task_callback(std::shared_ptr<DownloadTask> task);
 };

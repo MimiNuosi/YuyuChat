@@ -5,10 +5,12 @@
 #include "const.h"
 #include "Session.h"
 #include <memory>
+#include "FileWorker.h"
 
 class FileTask;
 class FileWorker;
-
+class DownloadTask;
+class DownloadWorker;
 typedef std::function<void(std::shared_ptr<FileTask>)> FileTaskCallback;
 
 class FileSystem : public Singleton<FileSystem> {
@@ -16,7 +18,7 @@ class FileSystem : public Singleton<FileSystem> {
 public:
     ~FileSystem() = default;
     void PostMsgToQue(std::shared_ptr <FileTask> msg, int index);
-
+    void PostDownloadMsgToQue(std::shared_ptr<DownloadTask> msg, int index);
     // 注册全局回调
     void RegisterFileCallback(MSG_IDS msg_id, FileTaskCallback callback);
 
@@ -27,7 +29,7 @@ private:
     FileSystem();
     std::unordered_map<MSG_IDS, FileTaskCallback> _handlers;
     std::vector<std::shared_ptr<FileWorker>>  _file_workers;
-
+    std::vector<std::shared_ptr<DownloadWorker>> _download_workers;
 };
 
 namespace detail {

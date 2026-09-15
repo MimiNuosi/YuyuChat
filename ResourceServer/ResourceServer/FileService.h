@@ -81,6 +81,29 @@ void HeadIconUploadHandler(std::shared_ptr<FileTask> task) {
     }
 }
 
-// 使用宏自动注册到 FileSystem 的集中路由表
+
+// ================= 聊天图片文件落盘回调 =================
+void ImgChatUploadFileHandler(std::shared_ptr<FileTask> task) {
+    // 1. 复用统一的解码与磁盘写入逻辑
+    Json::Value result = WriteChunkToFile(task);
+
+    // 2. 尾包处理：落盘成功后执行后续业务
+    if (task->_last && result["error"].asInt() == ErrorCodes::Success) {
+        std::cout << "[文件系统] 聊天图片写入完毕: " << task->_name
+            << " (MessageID: " << task->_msg_id << ")" << std::endl;
+
+        // TODO: 
+        // a. 更新 MySQL 中 chat_message 表的状态（标记为已送达/落盘）
+        // b. 通过 gRPC 通知 ChatServer，将图片消息推给接收方客户端
+    }
+
+    // 3. 触发由 LogicService 传递过来的异步回包闭包 (发回 ID_IMG_CHAT_UPLOAD_RSP)
+    if (task->_callback) {
+        task->_callback(result);
+    }
+}
+
+
+REGISTER_FILE_CALL_BACK(ID_IMG_CHAT_UPLOAD_REQ, ImgChatUploadFileHandler)
 REGISTER_FILE_CALL_BACK(ID_UPLOAD_FILE_REQ, FileUploadHandler)
 REGISTER_FILE_CALL_BACK(ID_UPLOAD_HEAD_ICON_REQ, HeadIconUploadHandler)

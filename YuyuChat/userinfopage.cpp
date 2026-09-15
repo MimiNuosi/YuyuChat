@@ -3,7 +3,6 @@
 #include "usermanager.h"
 #include "filetcpmanager.h"
 #include "imagecropperdialog.h"
-#include "tcpmanager.h"
 
 #include <QDebug>
 #include <QMessageBox>
@@ -23,10 +22,7 @@ UserInfoPage::UserInfoPage(QWidget *parent) :
     ui->setupUi(this);
 
     auto icon = UserManager::GetInstance()->GetIcon();
-    QPixmap pixmap = Utils::GetAvatarPixmap(icon);
-    QPixmap scaledPixmap = pixmap.scaled(ui->head_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    ui->head_label->setPixmap(scaledPixmap);
-    ui->head_label->setScaledContents(true);
+    Utils::LoadAvatarOrDownload(UserManager::GetInstance()->GetIcon(), ui->head_label);
 
     // 获取基本信息
     auto sex = UserManager::GetInstance()->GetSex();

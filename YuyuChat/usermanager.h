@@ -2,10 +2,12 @@
 #define USERMANAGER_H
 
 #include <QObject>
+#include <QLabel>
 #include <memory>
 #include <singleton.h>
 #include <vector>
 #include "userdata.h"
+#include <mutex>
 
 class UserManager:public QObject,public Singleton<UserManager>,
                 public std::enable_shared_from_this<UserManager>
@@ -54,6 +56,17 @@ public:
     std::shared_ptr<QFileInfo> GetUploadInfoByName(QString name);
     void AddUploadFile(QString name, std::shared_ptr<QFileInfo> file_info);
 
+    bool IsDownLoading(const QString& name);
+    void AddDownloadFile(const QString& name, std::shared_ptr<DownloadInfo> file_info);
+    std::shared_ptr<DownloadInfo> GetDownloadInfo(const QString& name);
+    void RmvDownloadFile(const QString& name);
+
+    void AddLabelToReset(const QString& path, QLabel* label);
+    void ResetLabelIcon(const QString& path);
+
+    void AddTransFile(QString name, std::shared_ptr<MsgInfo> msg_info);
+    std::shared_ptr<MsgInfo> GetTransFileByName(QString name);
+    void RmvTransFileByName(QString name);
 private:
     UserManager();
     QString _token;
@@ -70,6 +83,11 @@ private:
     QMap<int,int> _uid_to_thread_id;
     std::mutex _mutex;
     QMap<QString, std::shared_ptr<QFileInfo> > _name_to_upload_info;
+    std::mutex _down_load_mtx;
+    QMap<QString, std::shared_ptr<DownloadInfo>> _name_to_download_info;
+    QMap<QString, QList<QPointer<QLabel>>> _name_to_reset_labels;
+    QHash<QString, std::shared_ptr<MsgInfo> > _name_to_msg_info;
+    std::mutex _trans_mtx;
 };
 
 #endif // USERMANAGER_H

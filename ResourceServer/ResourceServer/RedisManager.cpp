@@ -122,7 +122,7 @@ void RedisManager::DecreaseLoginCount(const std::string& serverName)
 	}
 }
 
-bool RedisManager::SetFileInfo(const std::string& md5, std::shared_ptr<FileInfo> file_info)
+bool RedisManager::SetFileInfo(const std::string& name, std::shared_ptr<FileInfo> file_info)
 {
     Json::Reader reader;
     Json::Value root;
@@ -132,9 +132,45 @@ bool RedisManager::SetFileInfo(const std::string& md5, std::shared_ptr<FileInfo>
     root["total_size"] = file_info->_total_size;
     root["trans_size"] = file_info->_trans_size;
     auto file_info_str = root.toStyledString();
-    auto redis_key = "file_upload_" + md5;
+    auto redis_key = "file_upload_" + name;
     bool success = Set(redis_key, file_info_str, 3600);
     return success;
+}
+
+std::shared_ptr<FileInfo> RedisManager::GetFileInfo(const std::string& name)
+{
+    auto redis_key = "file_upload_" + name;
+    std::string file_info_str = "";
+
+    // 从 Redis 获取数据
+    bool success = Get(redis_key, file_info_str);
+    if (!success || file_info_str.empty()) {
+        return nullptr;
+    }
+
+    // 解析 JSON
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(file_info_str, root)) {
+        std::cout << "Failed to parse file info JSON for name: " << name << std::endl;
+        return nullptr;
+    }
+
+    // 创建 FileInfo 对象并填充数据
+    auto file_info = std::make_shared<FileInfo>();
+    try {
+        file_info->_file_path_str = root["file_path_str"].asString();
+        file_info->_name = root["name"].asString();
+        file_info->_seq = root["seq"].asInt();
+        file_info->_total_size = std::stoll(root["total_size"].asString());
+        file_info->_trans_size = std::stoll(root["trans_size"].asString());
+    }
+    catch (const std::exception& e) {
+        std::cout << "Error parsing file info fields for name " << name << ": " << e.what() << std::endl;
+        return nullptr;
+    }
+
+    return file_info;
 }
 
 bool RedisManager::Get(const std::string& key, std::string& value) {
