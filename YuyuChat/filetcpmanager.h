@@ -33,6 +33,7 @@ public:
     void SendData(ReqID , QByteArray);
     void CloseConnection();
     void SendDownloadInfo(std::shared_ptr<DownloadInfo> download_info);
+    void StartUpload(std::shared_ptr<MsgInfo> msg_info);
 
 private:
     FileTcpManager();
@@ -41,6 +42,7 @@ private:
     void registerMetaType();
     void initSocketHandlers();
     void flushSendQueue();
+    void BatchSend(std::shared_ptr<MsgInfo> msg_info);
 
     QTcpSocket* _socket = nullptr;
     QTimer* _heart_timer = nullptr;
@@ -59,7 +61,7 @@ private:
     qint64  _bytes_sent;
     //是否正在发送
     bool _pending;
-
+    int _cwnd_size = 0;
 signals:
     void sig_send_data(ReqID ID,QByteArray data);
     void sig_tcp_close();

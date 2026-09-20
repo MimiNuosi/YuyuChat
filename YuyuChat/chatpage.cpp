@@ -166,8 +166,11 @@ void ChatPage::UpdateChatStatus(std::shared_ptr<ChatDataBase> msg)
             auto* bubble = item->GetBubble();
             auto* pic_bubble = dynamic_cast<PictureBubble*>(bubble);
             if (pic_bubble) {
-                pic_bubble->setTransferState(TransferState::Uploading);
-
+                if (msg->GetStatus() == 2) {
+                    pic_bubble->setTransferState(TransferState::Completed);
+                } else {
+                    pic_bubble->setTransferState(TransferState::Uploading);
+                }
                 // 绑定气泡点击事件到控制器
                 connect(pic_bubble, &PictureBubble::sig_clicked, this, [this, msg_id]() {
                     qDebug() << "[图片交互] 用户点击了图片，msg_id=" << msg_id;
@@ -325,8 +328,12 @@ void ChatPage::UpdateFileProgress(std::shared_ptr<MsgInfo> msg_info)
         auto* bubble = iter.value()->GetBubble();
         auto* pic_bubble = dynamic_cast<PictureBubble*>(bubble);
         if (pic_bubble) {
-            // 🌟 仅传递当前大小与总大小给纯 View
-            pic_bubble->setProgress(msg_info->_current_size, msg_info->_total_size); // 教程里有的字段叫 _rsp_size，对齐你的 MsgInfo 字段名即可
+            // 仅传递当前大小与总大小给纯 View
+            if (msg_info->_current_size >= msg_info->_total_size && msg_info->_total_size > 0) {
+                pic_bubble->setTransferState(TransferState::Completed);
+            } else {
+                pic_bubble->setProgress(msg_info->_current_size, msg_info->_total_size);
+            }
         }
     }
 }

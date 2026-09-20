@@ -81,6 +81,12 @@
     <ClCompile Include="base64.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="LogicService.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FileService.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsioIOContextPool.h">

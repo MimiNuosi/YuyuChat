@@ -106,6 +106,15 @@ ChatDialog::ChatDialog(QWidget *parent)
             this, [](QString path) {
                 UserManager::GetInstance()->ResetLabelIcon(path);
             }, Qt::QueuedConnection);
+    connect(FileTcpManager::GetInstance().get(), &FileTcpManager::sig_update_img_progress,
+            this, [this](int msg_id, qint64 current, qint64 total) {
+                auto msg_info = std::make_shared<MsgInfo>();
+                msg_info->_msg_id = msg_id;
+                msg_info->_msg_type = MsgType::IMG_MSG;
+                msg_info->_current_size = current;
+                msg_info->_total_size = total;
+                ui->chat_page->UpdateFileProgress(msg_info);
+            }, Qt::QueuedConnection);
     connect(FileTcpManager::GetInstance().get(), &FileTcpManager::sig_download_img_finished,
             this, [this](int msg_id, QString clientPath) {
                 auto msg_info = std::make_shared<MsgInfo>();
@@ -201,6 +210,44 @@ void ChatDialog::ShowSearch(bool bsearch)
 
 }
 
+void ChatDialog::EnsureImageDownloaded(std::shared_ptr<ImgChatData> imgchat)
+{
+    if (!imgchat || !imgchat->_msg_info) return;
+
+    const QString& name = imgchat->_msg_info->_unique_name;
+    if (name.isEmpty()) return;
+
+    // 1. 本地存储路径规划：AppData/user/<my_uid>/chatimg/<sender_uid>/<name>
+    QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QString save_dir = storageDir + "/user/" + QString::number(UserManager::GetInstance()->GetUid())
+                       + "/chatimg/" + QString::number(imgchat->GetSendUid());
+    QDir().mkpath(save_dir);
+    QString full_client_path = save_dir + "/" + name;
+
+    // 2. 检查本地磁盘是否已经存在该图
+    if (QFile::exists(full_client_path)) {
+        imgchat->_msg_info->_preview_pix = QPixmap(full_client_path);
+        imgchat->_msg_info->_transfer_state = TransferState::Completed;
+        return;
+    }
+
+    // 3. 去重 Guard：检查当前该文件是否正在下载中（防止重复触发下载）
+    if (UserManager::GetInstance()->IsDownLoading(name)) {
+        return;
+    }
+
+    // 4. 组装下载任务，并登记到 UserManager 状态池
+    auto download = std::make_shared<DownloadInfo>();
+    download->_name = name;
+    download->_seq = 1;
+    download->_client_path = full_client_path;
+    download->_sender_uid = imgchat->GetSendUid(); // 上传者 UID (如 1002)
+
+    UserManager::GetInstance()->AddDownloadFile(name, download);
+
+    // 5. 触发长连接发送下载切片请求
+    FileTcpManager::GetInstance()->SendDownloadInfo(download);
+}
 void ChatDialog::ClearLabelState(StateWidget *lb)
 {
     for(auto & ele: _lb_list){
@@ -473,6 +520,13 @@ void ChatDialog::slot_item_clicked(QListWidgetItem *item)
         ui->chat_page->SetChatData(thread_data); //  设置会话数据
         _cur_chat_uid = thread_data->GetOtherId();
         _cur_chat_thread_id = thread_data->GetThreadId();
+
+        for (auto& msg : thread_data->GetMsgMapRef()) {
+            if (msg->GetMsgType() == ChatMsgType::PIC) {
+                auto img_msg = std::dynamic_pointer_cast<ImgChatData>(msg);
+                EnsureImageDownloaded(img_msg);
+            }
+        }
     }
 }
 
@@ -540,28 +594,7 @@ void ChatDialog::slot_img_chat_msg(std::shared_ptr<ImgChatData> imgchat) {
         return;
     }
 
-    ui->chat_page->AppendChatMsg(imgchat);
-
-    // 计算本地存储路径并主动向 ResourceServer 发起切片拉取
-    auto msg_info = imgchat->_msg_info;
-    if (!msg_info) return;
-
-    QString storageDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QString save_dir = storageDir + "/user/" + QString::number(UserManager::GetInstance()->GetUid())
-                       + "/chatimg/" + QString::number(imgchat->GetSendUid());
-    QDir().mkpath(save_dir);
-    QString full_client_path = save_dir + "/" + msg_info->_unique_name;
-
-    auto download = std::make_shared<DownloadInfo>();
-    download->_name = msg_info->_unique_name;
-    download->_seq = 1;
-    download->_client_path = full_client_path;
-
-    // 把任务登记到 UserManager 方便收到切片时按 name 索引
-    UserManager::GetInstance()->AddDownloadFile(msg_info->_unique_name, download);
-
-    // 发起下载请求包
-    FileTcpManager::GetInstance()->SendDownloadInfo(download);
+    EnsureImageDownloaded(imgchat);
 }
 
 void ChatDialog::showLoadingDlg(bool b_show) {
@@ -703,7 +736,7 @@ void ChatDialog::slot_create_private_chat(int uid, int other_id, int thread_id)
     JumpToChatSession(thread_id);
 }
 
-void ChatDialog::slot_load_chat_msg(int thread_id, int msg_id, bool load_more, std::vector<std::shared_ptr<TextChatData> > msglists)
+void ChatDialog::slot_load_chat_msg(int thread_id, int msg_id, bool load_more, std::vector<std::shared_ptr<ChatDataBase> > msglists)
 {
     // 1. 严格通过回包带回来的 thread_id 查找会话，并做判空保护
     auto chat_thread = UserManager::GetInstance()->GetChatThreadByThreadId(thread_id);
@@ -734,6 +767,13 @@ void ChatDialog::slot_load_chat_msg(int thread_id, int msg_id, bool load_more, s
     if (_cur_chat_thread_id == 0 || _cur_chat_thread_id == thread_id) {
         _cur_chat_thread_id = thread_id;
         ui->chat_page->SetChatData(chat_thread);
+
+        for (auto& msg : msglists) {
+            if (msg->GetMsgType() == ChatMsgType::PIC) {
+                auto img_msg = std::dynamic_pointer_cast<ImgChatData>(msg);
+                EnsureImageDownloaded(img_msg);
+            }
+        }
     }
 
     // 4. 获取下一个待拉取会话
@@ -801,6 +841,24 @@ void ChatDialog::slot_add_img_msg(int thread_id, std::shared_ptr<ImgChatData> im
 
     //更新聊天界面信息
     ui->chat_page->UpdateChatStatus(img_msg);
+
+    // 刷新左侧会话最后一条消息预览为 "[图片]"
+    auto iter = _chat_thread_items.find(thread_id);
+        if (iter != _chat_thread_items.end()) {
+        auto* chat_wid = qobject_cast<ChatUserWid*>(ui->chat_user_list->itemWidget(iter.value()));
+            if (chat_wid) {
+            auto chat_data = std::make_shared<TextChatData>();
+            auto chat_vector = std::vector<std::shared_ptr<TextChatData>>();
+            chat_data->SetContent(QString("[图片]"));
+            chat_vector.push_back(chat_data);
+            chat_wid->UpdateLastMsg(chat_vector);
+        }
+    }
+
+    // 信令确认成功，由 FileTcpManager 正式启动多媒体切片滑动窗口上传
+    if (img_msg && img_msg->_msg_info) {
+        FileTcpManager::GetInstance()->StartUpload(img_msg->_msg_info);
+    }
 }
 void ChatDialog::loadMoreConUser()
 {

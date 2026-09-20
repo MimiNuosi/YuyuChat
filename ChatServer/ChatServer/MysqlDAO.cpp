@@ -722,7 +722,7 @@ std::shared_ptr<PageResult> MysqlDAO::LoadChatMessages(int64_t threadId, int64_t
 		pageResult->nextLastId = lastId;
 
         std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(R"(
-        SELECT message_id, thread_id, sender_id, recv_id, content,
+        SELECT message_id, thread_id, unique_id, msg_type, sender_id, recv_id, content,
                created_at, updated_at, status
         FROM chat_message
         WHERE thread_id = ?
@@ -742,6 +742,8 @@ std::shared_ptr<PageResult> MysqlDAO::LoadChatMessages(int64_t threadId, int64_t
         while (res->next())
         {
             ChatMessage msg;
+            msg.msg_type = res->getInt("msg_type");
+            msg.unique_id = res->getString("unique_id");
             msg.message_id = res->getUInt64("message_id");
             msg.thread_id = res->getUInt64("thread_id");
             msg.sender_id = res->getUInt64("sender_id");
@@ -784,17 +786,19 @@ bool MysqlDAO::AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_da
         auto pstmt = std::unique_ptr<sql::PreparedStatement>(
             conn->prepareStatement(
                 "INSERT INTO chat_message "
-                "(thread_id, sender_id, recv_id, content, created_at, updated_at, status) "
-                "VALUES (?, ?, ?, ?, NOW(), NOW(), ?)"
+                "(thread_id, unique_id, msg_type, sender_id, recv_id, content, created_at, updated_at, status) "
+                "VALUES (?, ?, ? , ?, ?, ?, NOW(), NOW(), ?)"
             )
         );
 
         for (auto& msg : chat_datas) {
             pstmt->setUInt64(1, msg->thread_id);
-            pstmt->setUInt64(2, msg->sender_id);
-            pstmt->setUInt64(3, msg->recv_id);
-            pstmt->setString(4, msg->content);
-            pstmt->setInt(5, msg->status); // 对应第 5 个占位符
+            pstmt->setString(2, msg->unique_id);
+            pstmt->setUInt64(3, msg->msg_type);
+            pstmt->setUInt64(4, msg->sender_id);
+            pstmt->setUInt64(5, msg->recv_id);
+            pstmt->setString(6, msg->content);
+            pstmt->setInt(7, msg->status); // 对应第 5 个占位符
             pstmt->executeUpdate();
 
             //  取 LAST_INSERT_ID()

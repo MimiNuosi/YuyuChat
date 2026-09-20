@@ -41,6 +41,11 @@ void ChatDataBase::SetUniqueId(int unique_id) {
     _unique_id = QString::number(unique_id);
 }
 
+void ChatDataBase::SetContent(QString content)
+{
+    _content = content;
+}
+
 QString ChatDataBase::GetUniqueId() {
     return _unique_id;
 }

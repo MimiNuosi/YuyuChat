@@ -745,9 +745,11 @@ void LoadChatMessageHandler(std::shared_ptr<Session> session, short msg_id, std:
         chat_data["sender"] = message->sender_id;
         chat_data["msg_id"] = message->message_id;
         chat_data["thread_id"] = message->thread_id;
-        chat_data["unique_id"] = 0;
         chat_data["msg_content"] = message->content;
         chat_data["chat_time"] = message->chat_time;
+        chat_data["unique_id"] = message->unique_id;
+        chat_data["msg_type"] = message->msg_type;
+        chat_data["status"] = message->status;
         rtvalue["chat_datas"].append(chat_data);
     }
 }
@@ -782,6 +784,7 @@ void ImgChatHandler(std::shared_ptr<Session> session, short msg_id, std::string 
 
         auto timestamp = getCurrentTimestamp();
         auto chat_msg = std::make_shared<ChatMessage>();
+        chat_msg->msg_type = static_cast<int>(ChatMsgType::PIC);
         chat_msg->chat_time = timestamp;
         chat_msg->sender_id = uid;
         chat_msg->recv_id = touid;
@@ -794,6 +797,9 @@ void ImgChatHandler(std::shared_ptr<Session> session, short msg_id, std::string 
 		chat_vector.push_back(chat_msg);
         //插入数据库
         MysqlManager::GetInstance()->AddChatMessage(chat_vector);
+
+        rtvalue["message_id"] = chat_vector[0]->message_id;
+
     // 无论下面逻辑如何 return，退出时必然发送回包
     Defer defer([&session, &rtvalue]() {
         std::string return_str = rtvalue.toStyledString();

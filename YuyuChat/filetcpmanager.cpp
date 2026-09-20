@@ -21,6 +21,7 @@ void FileTcpManager::SendDownloadInfo(std::shared_ptr<DownloadInfo> download) {
     jsonObj["total_size"] = 0;
     jsonObj["token"] = UserManager::GetInstance()->GetToken();
     jsonObj["uid"] = UserManager::GetInstance()->GetUid();
+    jsonObj["sender_uid"] = download->_sender_uid;
     jsonObj["client_path"] = download->_client_path;
 
     QJsonDocument doc(jsonObj);
@@ -191,56 +192,34 @@ void FileTcpManager::initHandlers()
 
         QJsonObject recvObj = jsonDoc.object();
         if (recvObj.value("error").toInt(ErrorCodes::ERR_JSON) != ErrorCodes::SUCCESS) {
-            qWarning() << "[图片上传] 服务端报错:" << recvObj["error"].toInt();
+            qWarning() << "[图片上传] 服务端返回错误:" << recvObj["error"].toInt();
             return;
         }
 
+        // 收到服务端 1 个分片的 ACK，释放窗口配额
+        if (_cwnd_size > 0) {
+            _cwnd_size--;
+        }
+
         auto name = recvObj["name"].toString();
-        auto md5 = recvObj["md5"].toString();
-        auto seq = recvObj["seq"].toInt();
         qint64 trans_size = recvObj["trans_size"].toVariant().toLongLong();
         qint64 total_size = recvObj["total_size"].toVariant().toLongLong();
 
-        // 1. 从 UserManager 获取对应发送任务
         auto file_info = UserManager::GetInstance()->GetTransFileByName(name);
         if (!file_info) return;
 
-        // 2. 更新内存对象已传输大小，并向外发射进度信号刷新 PictureBubble
-        file_info->_current_size = trans_size;
+        // 1. 刷新界面 UI 进度
         emit sig_update_img_progress(file_info->_msg_id, trans_size, total_size);
 
-        // 3. 传输完成判定
+        // 2. 检查是否整图全部传输完毕
         if (trans_size >= total_size) {
-            qDebug() << "[图片上传] 资源传输完毕，落盘成功:" << name;
+            qDebug() << "[图片上传] 传输完毕，服务端已落盘:" << name;
             UserManager::GetInstance()->RmvTransFileByName(name);
             return;
         }
 
-        // 4. 读取下一个 32KB 分片继续上推
-        QFile file(file_info->_text_or_url);
-        if (!file.open(QIODevice::ReadOnly)) return;
-
-        file.seek(trans_size);
-        QByteArray buffer = file.read(MAX_FILE_LEN);
-        file.close();
-
-        if (buffer.isEmpty()) return;
-
-        qint64 next_trans_size = trans_size + buffer.size();
-
-        QJsonObject sendObj;
-        sendObj["md5"] = md5;
-        sendObj["name"] = name;
-        sendObj["seq"] = seq + 1;
-        sendObj["trans_size"] = QString::number(next_trans_size);
-        sendObj["total_size"] = QString::number(total_size);
-        sendObj["last"] = (next_trans_size >= total_size) ? 1 : 0;
-        sendObj["data"] = QString::fromUtf8(buffer.toBase64());
-        sendObj["uid"] = UserManager::GetInstance()->GetUid();
-        sendObj["token"] = UserManager::GetInstance()->GetToken();
-
-        QJsonDocument doc(sendObj);
-        SendData(ReqID::ID_IMG_CHAT_UPLOAD_REQ, doc.toJson(QJsonDocument::Compact));
+        // 3. 窗口滑动：继续调用 BatchSend 填充空出的发送窗口
+        BatchSend(file_info);
     });
 }
 
@@ -420,7 +399,6 @@ void FileTcpManager::initSocketHandlers()
 
             _b_recv_pending = false;
             QByteArray messageBody = _buffer.mid(0, _message_len);
-            qDebug() << "receive body msg is " << messageBody;
 
             _buffer = _buffer.mid(_message_len);
             handleMessage(ReqID(_message_id), _message_len, messageBody);
@@ -516,6 +494,64 @@ void FileTcpManager::slot_tcp_close()
     _current_block.clear();
     _bytes_sent = 0;
     _pending = false;
+}
+
+void FileTcpManager::StartUpload(std::shared_ptr<MsgInfo> msg_info) {
+    if (!msg_info) return;
+    _cwnd_size = 0; // 重置窗口计数
+    BatchSend(msg_info);
+}
+
+void FileTcpManager::BatchSend(std::shared_ptr<MsgInfo> msg_info) {
+    if (!msg_info) return;
+
+    // 已传完则退出
+    if (msg_info->_current_size >= msg_info->_total_size) {
+        return;
+    }
+
+    // 窗口满（达到 MAX_CWND_SIZE）则暂停继续发送，等待 ACK 腾出窗口
+    if (_cwnd_size >= MAX_CWND_SIZE) {
+        return;
+    }
+
+    QFile file(msg_info->_text_or_url);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "[FileTcpManager] 无法打开待传文件:" << file.errorString();
+        return;
+    }
+
+    // 只要窗口有空位且文件未读完，持续向 ResourceServer 填充在途分片
+    while (_cwnd_size < MAX_CWND_SIZE && msg_info->_current_size < msg_info->_total_size) {
+        file.seek(msg_info->_current_size);
+        QByteArray buffer = file.read(MAX_FILE_LEN);
+        if (buffer.isEmpty()) break;
+
+        qint64 next_trans_size = msg_info->_current_size + buffer.size();
+        bool is_last = (next_trans_size >= msg_info->_total_size);
+
+        QJsonObject sendObj;
+        sendObj["md5"] = msg_info->_md5;
+        sendObj["name"] = msg_info->_unique_name;
+        sendObj["seq"] = msg_info->_seq;
+        sendObj["trans_size"] = QString::number(next_trans_size);
+        sendObj["total_size"] = QString::number(msg_info->_total_size);
+        sendObj["last"] = is_last ? 1 : 0;
+        sendObj["data"] = QString::fromUtf8(buffer.toBase64());
+        sendObj["uid"] = UserManager::GetInstance()->GetUid();
+        sendObj["token"] = UserManager::GetInstance()->GetToken();
+
+        QJsonDocument doc(sendObj);
+        SendData(ReqID::ID_IMG_CHAT_UPLOAD_REQ, doc.toJson(QJsonDocument::Compact));
+
+        // 窗口占用增加，指针推进
+        _cwnd_size++;
+        msg_info->_seq++;
+        msg_info->_current_size = next_trans_size;
+
+        if (is_last) break;
+    }
+    file.close();
 }
 
 FileTcpThread::FileTcpThread()

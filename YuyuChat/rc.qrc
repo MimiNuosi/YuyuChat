@@ -3,5 +3,6 @@
         <file>style/stylesheet.qss</file>
         <file>res/unvisible.png</file>
         <file>res/head_1.jpg</file>
+        <file>res/pic_loading.png.jpg</file>
     </qresource>
 </RCC>

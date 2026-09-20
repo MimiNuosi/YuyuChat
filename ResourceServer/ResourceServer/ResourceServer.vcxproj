@@ -134,8 +134,10 @@
     <ClCompile Include="ConfigManager.cpp" />
     <ClCompile Include="DistLock.cpp" />
     <ClCompile Include="FileInfo.cpp" />
+    <ClCompile Include="FileService.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="FileWorker.cpp" />
+    <ClCompile Include="LogicService.cpp" />
     <ClCompile Include="LogicSystem.cpp" />
     <ClCompile Include="LogicWorker.cpp" />
     <ClCompile Include="message.grpc.pb.cc" />

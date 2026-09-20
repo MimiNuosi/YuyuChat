@@ -148,6 +148,7 @@ public:
     int GetSendUid() { return _send_uid; }
     QString GetMsgContent(){return _content;}
     void SetUniqueId(int unique_id);
+    void SetContent(QString);
     QString GetUniqueId();
     int GetStatus() { return _status; }
     void SetMsgId(int msg_id) { _msg_id = msg_id; }

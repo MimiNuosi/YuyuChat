@@ -261,6 +261,7 @@ struct DownloadInfo {
     int _current_size;
     int _seq;
     QString _client_path;
+    int _sender_uid = 0;
 };
 
 
