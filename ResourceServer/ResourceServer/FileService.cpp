@@ -2,6 +2,7 @@
 #include <fstream>
 #include "base64.h"
 #include "const.h"
+#include "MysqlManager.h"
 #include "FileWorker.h"
 #include "FileService.h"
 #include "FileSystem.h"
@@ -95,6 +96,7 @@ void ImgChatUploadFileHandler(std::shared_ptr<FileTask> task) {
 
         // TODO: 
         // a. 更新 MySQL 中 chat_message 表的状态（标记为已送达/落盘）
+        bool b_success = MysqlManager::GetInstance()->UpdateUploadStatus(task->_msg_id);
 
         // b. 通过 gRPC 通知 ChatServer，将图片消息推给接收方客户端
     }

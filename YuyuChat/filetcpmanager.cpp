@@ -214,6 +214,9 @@ void FileTcpManager::initHandlers()
         // 2. 检查是否整图全部传输完毕
         if (trans_size >= total_size) {
             qDebug() << "[图片上传] 传输完毕，服务端已落盘:" << name;
+            file_info->_current_size = total_size;
+            file_info->_transfer_state = TransferState::Completed;
+            emit sig_update_img_progress(file_info->_msg_id, total_size, total_size);
             UserManager::GetInstance()->RmvTransFileByName(name);
             return;
         }
@@ -378,30 +381,30 @@ void FileTcpManager::initSocketHandlers()
     connect(_socket, &QTcpSocket::readyRead, this, [this]() {
         _buffer.append(_socket->readAll());
 
-        forever {
-            if (!_b_recv_pending) {
-                if (_buffer.size() < FILE_UPLOAD_HEAD_LEN) {
-                    return;
-                }
+        while (_buffer.size() >= FILE_UPLOAD_HEAD_LEN) {
+            // 1. 数据流绑定在当前缓冲区，指针每次从头对齐
+            QDataStream stream(&_buffer, QIODevice::ReadOnly);
+            stream.setVersion(QDataStream::Qt_5_0);
+            stream.setByteOrder(QDataStream::BigEndian);
 
-                QDataStream stream(_buffer);
-                stream.setVersion(QDataStream::Qt_5_0);
-                stream >> _message_id >> _message_len;
+            quint16 msg_id = 0;
+            quint16 msg_len = 0;
+            stream >> msg_id >> msg_len;
 
-                _buffer.remove(0, FILE_UPLOAD_HEAD_LEN);
-                qDebug() << "Message ID:" << _message_id << ", Length:" << _message_len;
+            // 2. 检查总长度是否足够（包头 + 负载）
+            if (_buffer.size() < FILE_UPLOAD_HEAD_LEN + msg_len) {
+                // 出现了半包/拆包，当前包数据尚未收全，退出等待下一次 readyRead
+                break;
             }
 
-            if (_buffer.size() < _message_len) {
-                _b_recv_pending = true;
-                return;
-            }
+            // 3. 提取完整的包体数据
+            QByteArray messageBody = _buffer.mid(FILE_UPLOAD_HEAD_LEN, msg_len);
 
-            _b_recv_pending = false;
-            QByteArray messageBody = _buffer.mid(0, _message_len);
+            // 4. 一次性安全移除处理完的完整包（包头 + 包体）
+            _buffer.remove(0, FILE_UPLOAD_HEAD_LEN + msg_len);
 
-            _buffer = _buffer.mid(_message_len);
-            handleMessage(ReqID(_message_id), _message_len, messageBody);
+            // 5. 分发处理业务
+            handleMessage(ReqID(msg_id), msg_len, messageBody);
         }
     });
 

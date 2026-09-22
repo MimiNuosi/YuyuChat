@@ -847,3 +847,39 @@ bool MysqlDAO::UpdateHeadInfo(int64_t uid, const std::string& icon) {
         return false;
     }
 }
+
+bool MysqlDAO::UpdateUploadStatus(int chat_message_id)
+{
+    auto con = pool_->getConnection();
+    if (!con) {
+        return false;
+    }
+    Defer defer([this, &con]() {
+        pool_->returnConnection(std::move(con));
+        });
+
+    auto& conn = con->_con;
+    try {
+        std::string update_sql =
+            "UPDATE chat_message SET status = ? WHERE message_id = ?;";
+
+        std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(update_sql));
+        pstmt->setInt(1, MsgStatus::READED);
+        pstmt->setInt64(2, chat_message_id);
+
+        int affected_rows = pstmt->executeUpdate();
+
+        // 检查是否有行被更新（可选）
+        if (affected_rows == 0) {
+            std::cerr << "No chat message found with chat_message_id: " << chat_message_id << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+    catch (sql::SQLException& e) {
+        std::cerr << "SQLException in UpdateUploadStatus: " << e.what() << std::endl;
+        return false;
+    }
+    return false;
+}

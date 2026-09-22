@@ -117,6 +117,13 @@ enum MSG_IDS {
     ID_SYNC_FILE_RSP = 1056,
 };
 
+enum MsgStatus {
+    UN_READ = 0,  //对方未读
+    SEND_FAILED = 1,  //发送失败
+    READED = 2,  //对方已读
+    UN_UPLOAD = 3 //未上传完成
+};
+
 class Defer {
 public:
 	Defer(std::function<void()> func) : _func(func) {}

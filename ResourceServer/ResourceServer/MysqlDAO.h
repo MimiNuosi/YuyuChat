@@ -78,6 +78,7 @@ public:
 	std::shared_ptr<PageResult> LoadChatMessages(int64_t threadId, int64_t lastId, int pageSize);
 	bool AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas);
     bool UpdateHeadInfo(int64_t uid, const std::string& icon);
+    bool UpdateUploadStatus(int chat_message_id);
 private:
     std::unique_ptr<MySqlPool> pool_;
 };

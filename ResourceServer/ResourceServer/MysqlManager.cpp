@@ -100,6 +100,11 @@ bool MysqlManager::UpdateHeadInfo(int64_t uid, const std::string& icon) {
     return true;
 }
 
+bool MysqlManager::UpdateUploadStatus(int chat_message_id)
+{
+    return _dao.UpdateUploadStatus(chat_messag_id);
+}
+
 MysqlManager::MysqlManager() 
 {
     
