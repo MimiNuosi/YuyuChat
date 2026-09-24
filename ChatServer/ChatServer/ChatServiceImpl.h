@@ -20,6 +20,9 @@ using message::TextChatMsgRsp;
 using message::TextChatData;
 using message::KickUserReq;
 using message::KickUserRsp;
+using message::ImgChatMsgReq;
+using message::ImgChatMsgRsp;
+
 
 class ChatServiceImpl final : public ChatService::Service
 {
@@ -39,6 +42,9 @@ public:
     void RegisterServer(std::shared_ptr<Server> pServer);
 
 	Status KickUser(ServerContext* context, const KickUserReq* request, KickUserRsp* response) override;
+
+    Status ImgChatMsg(::grpc::ServerContext* context,
+        const ::message::ImgChatMsgReq* request, ::message::ImgChatMsgRsp* response) override;
 
 private:
     std::shared_ptr<Server> _p_server;

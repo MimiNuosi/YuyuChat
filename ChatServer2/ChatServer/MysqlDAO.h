@@ -25,7 +25,7 @@ struct ApplyInfo {
         _icon(icon), _nick(nick), _sex(sex), _status(status) {}
     int _uid;
     std::string _name;
-    std::string _desc;  
+    std::string _desc;
     std::string _icon;
     std::string _nick;
     int _sex;
@@ -59,13 +59,6 @@ struct PageResult {
     int64_t nextLastId;
 };
 
-enum class ChatMsgType {
-    TEXT = 0,
-    PIC = 1,
-    VIDEO = 2,
-    FILE = 3
-};
-
 class MysqlDAO
 {
 public:
@@ -85,6 +78,9 @@ public:
 	bool CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& threadId);
 	std::shared_ptr<PageResult> LoadChatMessages(int64_t threadId, int64_t lastId, int pageSize);
 	bool AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas);
+    bool UpdateHeadInfo(int64_t uid, const std::string& icon);
+    bool UpdateUploadStatus(int chat_message_id);
+    std::shared_ptr<ChatMessage> GetChatMsgById(int chat_message_id);
 private:
     std::unique_ptr<MySqlPool> pool_;
 };

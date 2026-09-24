@@ -137,7 +137,7 @@ void LoginDialog::initHttpHandlers()
 
         qDebug() << "[网络配置] ChatServer 地址:" << _si->_chat_host << ":" << _si->_chat_port
                  << " | ResourceServer 地址:" << _si->_res_host << ":" << _si->_res_port;
-        showTip(tr("登录成功"), true);
+        showTip(tr("登录中"), true);
         qDebug() << "User logged in: " << email;
         emit sig_connect_tcp(_si);
     });

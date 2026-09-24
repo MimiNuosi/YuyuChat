@@ -21,6 +21,9 @@ public:
 	bool CreatePrivateThread(int64_t user1Id, int64_t user2Id, int64_t& threadId);
 	std::shared_ptr<PageResult> LoadChatMessages(int64_t threadId, int64_t lastId, int pageSize);
     bool AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas);
+    bool UpdateHeadInfo(int64_t uid, const std::string& icon);
+    bool UpdateUploadStatus(int chat_message_id);
+    std::shared_ptr<ChatMessage> GetChatMsgById(int chat_message_id);
 private:
     MysqlManager();
     MysqlDAO  _dao;

@@ -166,14 +166,12 @@ void FileTcpManager::initHandlers()
             UserManager::GetInstance()->RmvDownloadFile(name);
 
             if (name.startsWith("head_")) {
-                emit sig_reset_label_icon(clientPath); // 头像下载完，刷新头像
+                emit sig_reset_label_icon(clientPath);
             } else {
-                // 聊天图片下载完，通过消息缓存拿到 msg_id 并精准驱动气泡
-                auto trans_file = UserManager::GetInstance()->GetTransFileByName(name);
-                int msg_id = trans_file ? trans_file->_msg_id : 0;
-                emit sig_download_img_finished(msg_id, clientPath);
+                emit sig_download_img_finished(file_info->_msg_id, clientPath);
             }
-        } else {
+        }
+        else {
             // 中间包：刷新下载进度条
             auto trans_file = UserManager::GetInstance()->GetTransFileByName(name);
             if (trans_file) {
@@ -216,13 +214,130 @@ void FileTcpManager::initHandlers()
             qDebug() << "[图片上传] 传输完毕，服务端已落盘:" << name;
             file_info->_current_size = total_size;
             file_info->_transfer_state = TransferState::Completed;
-            emit sig_update_img_progress(file_info->_msg_id, total_size, total_size);
             UserManager::GetInstance()->RmvTransFileByName(name);
             return;
         }
 
         // 3. 窗口滑动：继续调用 BatchSend 填充空出的发送窗口
         BatchSend(file_info);
+    });
+
+    _handlers.insert(ID_IMG_CHAT_DOWN_RSP, [this](ReqID id, int len, QByteArray data) {
+        Q_UNUSED(len);
+        qDebug() << "handle id is " << id << " data is " << data;
+        // 将QByteArray转换为QJsonDocument
+
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
+
+        // 检查转换是否成功
+        if (jsonDoc.isNull()) {
+            qDebug() << "Failed to create QJsonDocument.";
+            return;
+        }
+
+        QJsonObject jsonObj = jsonDoc.object();
+
+        if (!jsonObj.contains("error")) {
+            int err = ErrorCodes::ERR_JSON;
+            qDebug() << "parse create private chat json parse failed " << err;
+            return;
+        }
+
+        int err = jsonObj["error"].toInt();
+        if (err != ErrorCodes::SUCCESS) {
+            qDebug() << "get create private chat failed, error is " << err;
+            return;
+        }
+
+        qDebug() << "Receive download file info rsp success";
+
+        QString base64Data = jsonObj["data"].toString();
+        int seq = jsonObj["seq"].toInt();
+        bool is_last = jsonObj["is_last"].toBool();
+        QString total_size_str = jsonObj["total_size"].toString();
+        qint64  total_size = total_size_str.toLongLong(nullptr);
+        QString current_size_str = jsonObj["current_size"].toString();
+        qint64  current_size = current_size_str.toLongLong(nullptr);
+        QString name = jsonObj["name"].toString();
+
+        auto file_info = UserManager::GetInstance()->GetTransFileByName(name);
+        if (file_info == nullptr) {
+            qDebug() << "file: " << name << " not found";
+            return;
+        }
+
+        file_info->_current_size = current_size;
+        file_info->_rsp_size = current_size;
+        file_info->_total_size = total_size;
+        auto clientPath = file_info->_text_or_url;
+
+        //Base64解码
+        QByteArray decodedData = QByteArray::fromBase64(base64Data.toUtf8());
+        auto file_path = clientPath + "/" + name;
+        QFile file(file_path);
+
+        // 根据 seq 决定打开模式
+        QIODevice::OpenMode mode;
+        if (seq == 1) {
+            // 第一个包，覆盖写入
+            mode = QIODevice::WriteOnly;
+        }
+        else {
+            // 后续包，追加写入
+            mode = QIODevice::WriteOnly | QIODevice::Append;
+        }
+
+        if (!file.open(mode)) {
+            qDebug() << "Failed to open file for writing:" << clientPath;
+            qDebug() << "Error:" << file.errorString();
+            return;
+        }
+
+
+        qint64 bytesWritten = file.write(decodedData);
+        if (bytesWritten != decodedData.size()) {
+            qDebug() << "Failed to write all data. Written:" << bytesWritten
+                     << "Expected:" << decodedData.size();
+        }
+
+        file.close();
+
+        qDebug() << "Successfully wrote" << bytesWritten << "bytes to file";
+        qDebug() << "Progress:" << current_size << "/" << total_size
+                 << "(" << (current_size * 100 / total_size) << "%)";
+
+        if (is_last) {
+            qDebug() << "File download completed:" << clientPath;
+            UserManager::GetInstance()->RmvTransFileByName(name);
+            //通知界面下载完成
+            emit sig_download_img_finished(file_info->_msg_id, file_path);
+        }
+        else {
+            //继续请求
+            file_info->_seq = seq + 1;
+            file_info->_last_confirmed_seq = seq;
+            if (file_info->_transfer_state == TransferState::Paused) {
+                //暂停状态，则直接返回
+                return;
+            }
+            //组织请求，准备下载
+            QJsonObject jsonObj_send;
+            jsonObj_send["name"] = name;
+            jsonObj_send["seq"] = file_info->_seq;
+            jsonObj_send["trans_size"] = QString::number(file_info->_current_size);
+            jsonObj_send["total_size"] = QString::number(file_info->_total_size);
+            jsonObj_send["token"] = UserManager::GetInstance()->GetToken();
+            jsonObj_send["sender_id"] = file_info->_sender;
+            jsonObj_send["receiver_id"] = file_info->_receiver;
+            jsonObj_send["message_id"] = file_info->_msg_id;
+            auto uid = UserManager::GetInstance()->GetUid();
+            jsonObj_send["uid"] = uid;
+            QJsonDocument doc(jsonObj_send);
+            auto send_data = doc.toJson();
+            FileTcpManager::GetInstance()->SendData(ID_IMG_CHAT_DOWN_REQ, send_data);
+            //todo...通知界面更新进度
+            emit sig_update_img_progress(file_info->_msg_id,file_info->_current_size, file_info->_total_size);
+        }
     });
 }
 

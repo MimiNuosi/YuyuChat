@@ -137,6 +137,7 @@ enum MessageStatus{
     UN_READ = 0,
     SEND_FAILED = 1,
     READED = 2,
+    UN_UPLOAD = 3 //未上传完成
 };
 
 enum class ChatRole{
@@ -169,6 +170,7 @@ enum class MsgType {
 };
 
 
+
 enum class TransferType {
     None,
     Download,  //下载
@@ -191,7 +193,7 @@ struct MsgInfo{
         _current_size(0),_seq(1),_md5(md5)
     {}
     MsgInfo() = default;
-    MsgType _msg_type;
+    MsgType _msg_type;   //消息类型, 文本，图片，视频，文件
     QString _text_or_url;//表示文件和图像的url,文本信息
     QPixmap _preview_pix;//文件和图片的缩略图
     QString _unique_name; //文件唯一名字
@@ -199,8 +201,17 @@ struct MsgInfo{
     qint64 _current_size; //传输大小
     qint64 _seq;          //传输序号
     QString _md5;         //文件md5
-    qint64 _msg_id = 0;                        // 关联的聊天消息 ID (用于找气泡)
-    TransferState _transfer_state = TransferState::None; // 传输状态
+    std::set<qint64> _rsp_seqs;      //已经接受的回传序列集合
+    std::set<qint64> _flighting_seqs;  //正在发送，但是未收到服务器回复，将来用来做超时重传
+    qint64 _last_confirmed_seq;      //最后确认序列
+    qint64 _max_seq;                //最大序列号
+    qint64 _msg_id;                 //关联的消息id
+    qint64 _rsp_size;  //服务器返回实际上传或者下载的大小
+    qint64 _thread_id;             // 会话id
+    TransferState _transfer_state;  //上传或者下载, 暂停，传输完成
+    TransferType  _transfer_type;   //文件类型, 上传或者下载
+    int           _sender;          //发送者
+    int           _receiver;        //接收者
 };
 
 namespace Utils {
@@ -211,6 +222,7 @@ bool CheckVerifyValid(const QString& verify, QString& err_msg);
 void LoadAvatarOrDownload(const QString& icon_str, QLabel* target_label);
 QString calculateFileHash(const QString& filePath);
 QString generateUniqueFileName(const QString& originalName);
+QPixmap CreateLoadingPlaceholder(int width, int height );
 }
 
 
@@ -262,6 +274,7 @@ struct DownloadInfo {
     int _seq;
     QString _client_path;
     int _sender_uid = 0;
+    int _msg_id = 0;
 };
 
 

@@ -31,6 +31,11 @@ using message::TextChatMsgRsp;
 using message::TextChatData;
 using message::KickUserReq;
 using message::KickUserRsp;
+using message::ChatService;
+using message::ImgChatMsgReq;
+using message::ImgChatMsgRsp;
+
+
 
 class ChatGrpcClient :public Singleton<ChatGrpcClient>
 {
@@ -44,6 +49,8 @@ public:
     bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
     TextChatMsgRsp TextChatMsg(std::string server_ip, const TextChatMsgReq& req, const Json::Value& rtvalue);
 	KickUserRsp KickUser(std::string server_ip, const KickUserReq& req);
+    ImgChatMsgRsp ImgChatMsg(int message_id, std::string chatserver);
+
 private:
     ChatGrpcClient();
     std::unordered_map<std::string, std::unique_ptr<RpcConnectionPool<ChatService>>> _pools;

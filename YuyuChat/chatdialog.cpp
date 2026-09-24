@@ -122,6 +122,8 @@ ChatDialog::ChatDialog(QWidget *parent)
                 msg_info->_msg_type = MsgType::IMG_MSG;
                 ui->chat_page->DownloadFileFinished(msg_info, clientPath);
             }, Qt::QueuedConnection);
+    connect(TcpManager::GetInstance().get(), &TcpManager::sig_img_chat_msg,
+            this, &ChatDialog::slot_img_chat_msg);
 
     loadChatList();
 }
@@ -242,6 +244,7 @@ void ChatDialog::EnsureImageDownloaded(std::shared_ptr<ImgChatData> imgchat)
     download->_seq = 1;
     download->_client_path = full_client_path;
     download->_sender_uid = imgchat->GetSendUid(); // 上传者 UID (如 1002)
+    download->_msg_id = imgchat->GetMsgId();
 
     UserManager::GetInstance()->AddDownloadFile(name, download);
 

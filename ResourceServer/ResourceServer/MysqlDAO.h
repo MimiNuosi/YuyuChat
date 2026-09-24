@@ -50,6 +50,7 @@ struct ChatMessage {
     std::string content;
     std::string chat_time;
     int status;
+    int msg_type;
 };
 
 struct PageResult {
@@ -79,6 +80,7 @@ public:
 	bool AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas);
     bool UpdateHeadInfo(int64_t uid, const std::string& icon);
     bool UpdateUploadStatus(int chat_message_id);
+    std::shared_ptr<ChatMessage> GetChatMsgById(int chat_message_id);
 private:
     std::unique_ptr<MySqlPool> pool_;
 };

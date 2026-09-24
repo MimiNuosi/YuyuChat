@@ -89,6 +89,14 @@ class GetVerifyRsp;
 struct GetVerifyRspDefaultTypeInternal;
 extern GetVerifyRspDefaultTypeInternal _GetVerifyRsp_default_instance_;
 extern const ::google::protobuf::internal::ClassDataFull GetVerifyRsp_class_data_;
+class ImgChatMsgReq;
+struct ImgChatMsgReqDefaultTypeInternal;
+extern ImgChatMsgReqDefaultTypeInternal _ImgChatMsgReq_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ImgChatMsgReq_class_data_;
+class ImgChatMsgRsp;
+struct ImgChatMsgRspDefaultTypeInternal;
+extern ImgChatMsgRspDefaultTypeInternal _ImgChatMsgRsp_default_instance_;
+extern const ::google::protobuf::internal::ClassDataFull ImgChatMsgRsp_class_data_;
 class KickUserReq;
 struct KickUserReqDefaultTypeInternal;
 extern KickUserReqDefaultTypeInternal _KickUserReq_default_instance_;
@@ -1628,6 +1636,528 @@ class KickUserReq final : public ::google::protobuf::Message
 };
 
 extern const ::google::protobuf::internal::ClassDataFull KickUserReq_class_data_;
+// -------------------------------------------------------------------
+
+class ImgChatMsgRsp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.ImgChatMsgRsp) */ {
+ public:
+  inline ImgChatMsgRsp() : ImgChatMsgRsp(nullptr) {}
+  ~ImgChatMsgRsp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ImgChatMsgRsp* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ImgChatMsgRsp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ImgChatMsgRsp(::google::protobuf::internal::ConstantInitialized);
+
+  inline ImgChatMsgRsp(const ImgChatMsgRsp& from) : ImgChatMsgRsp(nullptr, from) {}
+  inline ImgChatMsgRsp(ImgChatMsgRsp&& from) noexcept
+      : ImgChatMsgRsp(nullptr, ::std::move(from)) {}
+  inline ImgChatMsgRsp& operator=(const ImgChatMsgRsp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ImgChatMsgRsp& operator=(ImgChatMsgRsp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ImgChatMsgRsp& default_instance() {
+    return *reinterpret_cast<const ImgChatMsgRsp*>(
+        &_ImgChatMsgRsp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 19;
+  friend void swap(ImgChatMsgRsp& a, ImgChatMsgRsp& b) { a.Swap(&b); }
+  inline void Swap(ImgChatMsgRsp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ImgChatMsgRsp* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ImgChatMsgRsp* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ImgChatMsgRsp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ImgChatMsgRsp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ImgChatMsgRsp& from) { ImgChatMsgRsp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ImgChatMsgRsp* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.ImgChatMsgRsp"; }
+
+  explicit ImgChatMsgRsp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ImgChatMsgRsp(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ImgChatMsgRsp& from);
+  ImgChatMsgRsp(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ImgChatMsgRsp&& from) noexcept
+      : ImgChatMsgRsp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kFileNameFieldNumber = 5,
+    kErrorFieldNumber = 1,
+    kFromUidFieldNumber = 2,
+    kToUidFieldNumber = 3,
+    kMessageIdFieldNumber = 4,
+    kTotalSizeFieldNumber = 6,
+    kThreadIdFieldNumber = 7,
+  };
+  // string file_name = 5;
+  void clear_file_name() ;
+  const ::std::string& file_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_file_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_file_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_file_name();
+  void set_allocated_file_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_file_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_file_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_file_name();
+
+  public:
+  // int32 error = 1;
+  void clear_error() ;
+  ::int32_t error() const;
+  void set_error(::int32_t value);
+
+  private:
+  ::int32_t _internal_error() const;
+  void _internal_set_error(::int32_t value);
+
+  public:
+  // int32 from_uid = 2;
+  void clear_from_uid() ;
+  ::int32_t from_uid() const;
+  void set_from_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_from_uid() const;
+  void _internal_set_from_uid(::int32_t value);
+
+  public:
+  // int32 to_uid = 3;
+  void clear_to_uid() ;
+  ::int32_t to_uid() const;
+  void set_to_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_to_uid() const;
+  void _internal_set_to_uid(::int32_t value);
+
+  public:
+  // int32 message_id = 4;
+  void clear_message_id() ;
+  ::int32_t message_id() const;
+  void set_message_id(::int32_t value);
+
+  private:
+  ::int32_t _internal_message_id() const;
+  void _internal_set_message_id(::int32_t value);
+
+  public:
+  // int64 total_size = 6;
+  void clear_total_size() ;
+  ::int64_t total_size() const;
+  void set_total_size(::int64_t value);
+
+  private:
+  ::int64_t _internal_total_size() const;
+  void _internal_set_total_size(::int64_t value);
+
+  public:
+  // int32 thread_id = 7;
+  void clear_thread_id() ;
+  ::int32_t thread_id() const;
+  void set_thread_id(::int32_t value);
+
+  private:
+  ::int32_t _internal_thread_id() const;
+  void _internal_set_thread_id(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.ImgChatMsgRsp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 7,
+                                   0, 39,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ImgChatMsgRsp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr file_name_;
+    ::int32_t error_;
+    ::int32_t from_uid_;
+    ::int32_t to_uid_;
+    ::int32_t message_id_;
+    ::int64_t total_size_;
+    ::int32_t thread_id_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ImgChatMsgRsp_class_data_;
+// -------------------------------------------------------------------
+
+class ImgChatMsgReq final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.ImgChatMsgReq) */ {
+ public:
+  inline ImgChatMsgReq() : ImgChatMsgReq(nullptr) {}
+  ~ImgChatMsgReq() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ImgChatMsgReq* PROTOBUF_NONNULL msg, ::std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ImgChatMsgReq));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ImgChatMsgReq(::google::protobuf::internal::ConstantInitialized);
+
+  inline ImgChatMsgReq(const ImgChatMsgReq& from) : ImgChatMsgReq(nullptr, from) {}
+  inline ImgChatMsgReq(ImgChatMsgReq&& from) noexcept
+      : ImgChatMsgReq(nullptr, ::std::move(from)) {}
+  inline ImgChatMsgReq& operator=(const ImgChatMsgReq& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ImgChatMsgReq& operator=(ImgChatMsgReq&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* PROTOBUF_NONNULL mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* PROTOBUF_NONNULL GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* PROTOBUF_NONNULL GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ImgChatMsgReq& default_instance() {
+    return *reinterpret_cast<const ImgChatMsgReq*>(
+        &_ImgChatMsgReq_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(ImgChatMsgReq& a, ImgChatMsgReq& b) { a.Swap(&b); }
+  inline void Swap(ImgChatMsgReq* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ImgChatMsgReq* PROTOBUF_NONNULL other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ImgChatMsgReq* PROTOBUF_NONNULL New(::google::protobuf::Arena* PROTOBUF_NULLABLE arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ImgChatMsgReq>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ImgChatMsgReq& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ImgChatMsgReq& from) { ImgChatMsgReq::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(::google::protobuf::MessageLite& to_msg,
+                        const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      const ::google::protobuf::MessageLite& msg, ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* PROTOBUF_NONNULL _InternalSerialize(
+      ::uint8_t* PROTOBUF_NONNULL target,
+      ::google::protobuf::io::EpsCopyOutputStream* PROTOBUF_NONNULL stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ImgChatMsgReq* PROTOBUF_NONNULL other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.ImgChatMsgReq"; }
+
+  explicit ImgChatMsgReq(::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  ImgChatMsgReq(::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const ImgChatMsgReq& from);
+  ImgChatMsgReq(
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, ImgChatMsgReq&& from) noexcept
+      : ImgChatMsgReq(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* PROTOBUF_NONNULL GetClassData() const PROTOBUF_FINAL;
+  static void* PROTOBUF_NONNULL PlacementNew_(
+      const void* PROTOBUF_NONNULL, void* PROTOBUF_NONNULL mem,
+      ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+  static constexpr auto InternalNewImpl_();
+
+ public:
+  static constexpr auto InternalGenerateClassData_();
+
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kFileNameFieldNumber = 4,
+    kFromUidFieldNumber = 1,
+    kToUidFieldNumber = 2,
+    kMessageIdFieldNumber = 3,
+    kThreadIdFieldNumber = 6,
+    kTotalSizeFieldNumber = 5,
+  };
+  // string file_name = 4;
+  void clear_file_name() ;
+  const ::std::string& file_name() const;
+  template <typename Arg_ = const ::std::string&, typename... Args_>
+  void set_file_name(Arg_&& arg, Args_... args);
+  ::std::string* PROTOBUF_NONNULL mutable_file_name();
+  [[nodiscard]] ::std::string* PROTOBUF_NULLABLE release_file_name();
+  void set_allocated_file_name(::std::string* PROTOBUF_NULLABLE value);
+
+  private:
+  const ::std::string& _internal_file_name() const;
+  PROTOBUF_ALWAYS_INLINE void _internal_set_file_name(const ::std::string& value);
+  ::std::string* PROTOBUF_NONNULL _internal_mutable_file_name();
+
+  public:
+  // int32 from_uid = 1;
+  void clear_from_uid() ;
+  ::int32_t from_uid() const;
+  void set_from_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_from_uid() const;
+  void _internal_set_from_uid(::int32_t value);
+
+  public:
+  // int32 to_uid = 2;
+  void clear_to_uid() ;
+  ::int32_t to_uid() const;
+  void set_to_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_to_uid() const;
+  void _internal_set_to_uid(::int32_t value);
+
+  public:
+  // int32 message_id = 3;
+  void clear_message_id() ;
+  ::int32_t message_id() const;
+  void set_message_id(::int32_t value);
+
+  private:
+  ::int32_t _internal_message_id() const;
+  void _internal_set_message_id(::int32_t value);
+
+  public:
+  // int32 thread_id = 6;
+  void clear_thread_id() ;
+  ::int32_t thread_id() const;
+  void set_thread_id(::int32_t value);
+
+  private:
+  ::int32_t _internal_thread_id() const;
+  void _internal_set_thread_id(::int32_t value);
+
+  public:
+  // int64 total_size = 5;
+  void clear_total_size() ;
+  ::int64_t total_size() const;
+  void set_total_size(::int64_t value);
+
+  private:
+  ::int64_t _internal_total_size() const;
+  void _internal_set_total_size(::int64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.ImgChatMsgReq)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<3, 6,
+                                   0, 39,
+                                   2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena);
+    inline explicit Impl_(
+        ::google::protobuf::internal::InternalVisibility visibility,
+        ::google::protobuf::Arena* PROTOBUF_NULLABLE arena, const Impl_& from,
+        const ImgChatMsgReq& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr file_name_;
+    ::int32_t from_uid_;
+    ::int32_t to_uid_;
+    ::int32_t message_id_;
+    ::int32_t thread_id_;
+    ::int64_t total_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+
+extern const ::google::protobuf::internal::ClassDataFull ImgChatMsgReq_class_data_;
 // -------------------------------------------------------------------
 
 class GetVerifyRsp final : public ::google::protobuf::Message
@@ -6456,6 +6986,419 @@ inline ::int32_t KickUserRsp::_internal_uid() const {
 inline void KickUserRsp::_internal_set_uid(::int32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.uid_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ImgChatMsgReq
+
+// int32 from_uid = 1;
+inline void ImgChatMsgReq::clear_from_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.from_uid_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::int32_t ImgChatMsgReq::from_uid() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgReq.from_uid)
+  return _internal_from_uid();
+}
+inline void ImgChatMsgReq::set_from_uid(::int32_t value) {
+  _internal_set_from_uid(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgReq.from_uid)
+}
+inline ::int32_t ImgChatMsgReq::_internal_from_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.from_uid_;
+}
+inline void ImgChatMsgReq::_internal_set_from_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.from_uid_ = value;
+}
+
+// int32 to_uid = 2;
+inline void ImgChatMsgReq::clear_to_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.to_uid_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::int32_t ImgChatMsgReq::to_uid() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgReq.to_uid)
+  return _internal_to_uid();
+}
+inline void ImgChatMsgReq::set_to_uid(::int32_t value) {
+  _internal_set_to_uid(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgReq.to_uid)
+}
+inline ::int32_t ImgChatMsgReq::_internal_to_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.to_uid_;
+}
+inline void ImgChatMsgReq::_internal_set_to_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.to_uid_ = value;
+}
+
+// int32 message_id = 3;
+inline void ImgChatMsgReq::clear_message_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.message_id_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::int32_t ImgChatMsgReq::message_id() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgReq.message_id)
+  return _internal_message_id();
+}
+inline void ImgChatMsgReq::set_message_id(::int32_t value) {
+  _internal_set_message_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgReq.message_id)
+}
+inline ::int32_t ImgChatMsgReq::_internal_message_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.message_id_;
+}
+inline void ImgChatMsgReq::_internal_set_message_id(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.message_id_ = value;
+}
+
+// string file_name = 4;
+inline void ImgChatMsgReq::clear_file_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.file_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ImgChatMsgReq::file_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgReq.file_name)
+  return _internal_file_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ImgChatMsgReq::set_file_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.file_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgReq.file_name)
+}
+inline ::std::string* PROTOBUF_NONNULL ImgChatMsgReq::mutable_file_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_file_name();
+  // @@protoc_insertion_point(field_mutable:message.ImgChatMsgReq.file_name)
+  return _s;
+}
+inline const ::std::string& ImgChatMsgReq::_internal_file_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.file_name_.Get();
+}
+inline void ImgChatMsgReq::_internal_set_file_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.file_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ImgChatMsgReq::_internal_mutable_file_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.file_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ImgChatMsgReq::release_file_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ImgChatMsgReq.file_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.file_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.file_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ImgChatMsgReq::set_allocated_file_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.file_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.file_name_.IsDefault()) {
+    _impl_.file_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ImgChatMsgReq.file_name)
+}
+
+// int64 total_size = 5;
+inline void ImgChatMsgReq::clear_total_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_size_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::int64_t ImgChatMsgReq::total_size() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgReq.total_size)
+  return _internal_total_size();
+}
+inline void ImgChatMsgReq::set_total_size(::int64_t value) {
+  _internal_set_total_size(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgReq.total_size)
+}
+inline ::int64_t ImgChatMsgReq::_internal_total_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.total_size_;
+}
+inline void ImgChatMsgReq::_internal_set_total_size(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_size_ = value;
+}
+
+// int32 thread_id = 6;
+inline void ImgChatMsgReq::clear_thread_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.thread_id_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::int32_t ImgChatMsgReq::thread_id() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgReq.thread_id)
+  return _internal_thread_id();
+}
+inline void ImgChatMsgReq::set_thread_id(::int32_t value) {
+  _internal_set_thread_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgReq.thread_id)
+}
+inline ::int32_t ImgChatMsgReq::_internal_thread_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.thread_id_;
+}
+inline void ImgChatMsgReq::_internal_set_thread_id(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.thread_id_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ImgChatMsgRsp
+
+// int32 error = 1;
+inline void ImgChatMsgRsp::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000002U);
+}
+inline ::int32_t ImgChatMsgRsp::error() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgRsp.error)
+  return _internal_error();
+}
+inline void ImgChatMsgRsp::set_error(::int32_t value) {
+  _internal_set_error(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000002U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgRsp.error)
+}
+inline ::int32_t ImgChatMsgRsp::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_;
+}
+inline void ImgChatMsgRsp::_internal_set_error(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_ = value;
+}
+
+// int32 from_uid = 2;
+inline void ImgChatMsgRsp::clear_from_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.from_uid_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000004U);
+}
+inline ::int32_t ImgChatMsgRsp::from_uid() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgRsp.from_uid)
+  return _internal_from_uid();
+}
+inline void ImgChatMsgRsp::set_from_uid(::int32_t value) {
+  _internal_set_from_uid(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000004U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgRsp.from_uid)
+}
+inline ::int32_t ImgChatMsgRsp::_internal_from_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.from_uid_;
+}
+inline void ImgChatMsgRsp::_internal_set_from_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.from_uid_ = value;
+}
+
+// int32 to_uid = 3;
+inline void ImgChatMsgRsp::clear_to_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.to_uid_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000008U);
+}
+inline ::int32_t ImgChatMsgRsp::to_uid() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgRsp.to_uid)
+  return _internal_to_uid();
+}
+inline void ImgChatMsgRsp::set_to_uid(::int32_t value) {
+  _internal_set_to_uid(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000008U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgRsp.to_uid)
+}
+inline ::int32_t ImgChatMsgRsp::_internal_to_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.to_uid_;
+}
+inline void ImgChatMsgRsp::_internal_set_to_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.to_uid_ = value;
+}
+
+// int32 message_id = 4;
+inline void ImgChatMsgRsp::clear_message_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.message_id_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000010U);
+}
+inline ::int32_t ImgChatMsgRsp::message_id() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgRsp.message_id)
+  return _internal_message_id();
+}
+inline void ImgChatMsgRsp::set_message_id(::int32_t value) {
+  _internal_set_message_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000010U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgRsp.message_id)
+}
+inline ::int32_t ImgChatMsgRsp::_internal_message_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.message_id_;
+}
+inline void ImgChatMsgRsp::_internal_set_message_id(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.message_id_ = value;
+}
+
+// string file_name = 5;
+inline void ImgChatMsgRsp::clear_file_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.file_name_.ClearToEmpty();
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000001U);
+}
+inline const ::std::string& ImgChatMsgRsp::file_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgRsp.file_name)
+  return _internal_file_name();
+}
+template <typename Arg_, typename... Args_>
+PROTOBUF_ALWAYS_INLINE void ImgChatMsgRsp::set_file_name(Arg_&& arg, Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  _impl_.file_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgRsp.file_name)
+}
+inline ::std::string* PROTOBUF_NONNULL ImgChatMsgRsp::mutable_file_name()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  ::std::string* _s = _internal_mutable_file_name();
+  // @@protoc_insertion_point(field_mutable:message.ImgChatMsgRsp.file_name)
+  return _s;
+}
+inline const ::std::string& ImgChatMsgRsp::_internal_file_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.file_name_.Get();
+}
+inline void ImgChatMsgRsp::_internal_set_file_name(const ::std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.file_name_.Set(value, GetArena());
+}
+inline ::std::string* PROTOBUF_NONNULL ImgChatMsgRsp::_internal_mutable_file_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.file_name_.Mutable( GetArena());
+}
+inline ::std::string* PROTOBUF_NULLABLE ImgChatMsgRsp::release_file_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ImgChatMsgRsp.file_name)
+  if (!CheckHasBit(_impl_._has_bits_[0], 0x00000001U)) {
+    return nullptr;
+  }
+  ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  auto* released = _impl_.file_name_.Release();
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString()) {
+    _impl_.file_name_.Set("", GetArena());
+  }
+  return released;
+}
+inline void ImgChatMsgRsp::set_allocated_file_name(::std::string* PROTOBUF_NULLABLE value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (value != nullptr) {
+    SetHasBit(_impl_._has_bits_[0], 0x00000001U);
+  } else {
+    ClearHasBit(_impl_._has_bits_[0], 0x00000001U);
+  }
+  _impl_.file_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.file_name_.IsDefault()) {
+    _impl_.file_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ImgChatMsgRsp.file_name)
+}
+
+// int64 total_size = 6;
+inline void ImgChatMsgRsp::clear_total_size() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_size_ = ::int64_t{0};
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000020U);
+}
+inline ::int64_t ImgChatMsgRsp::total_size() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgRsp.total_size)
+  return _internal_total_size();
+}
+inline void ImgChatMsgRsp::set_total_size(::int64_t value) {
+  _internal_set_total_size(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000020U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgRsp.total_size)
+}
+inline ::int64_t ImgChatMsgRsp::_internal_total_size() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.total_size_;
+}
+inline void ImgChatMsgRsp::_internal_set_total_size(::int64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.total_size_ = value;
+}
+
+// int32 thread_id = 7;
+inline void ImgChatMsgRsp::clear_thread_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.thread_id_ = 0;
+  ClearHasBit(_impl_._has_bits_[0],
+                  0x00000040U);
+}
+inline ::int32_t ImgChatMsgRsp::thread_id() const {
+  // @@protoc_insertion_point(field_get:message.ImgChatMsgRsp.thread_id)
+  return _internal_thread_id();
+}
+inline void ImgChatMsgRsp::set_thread_id(::int32_t value) {
+  _internal_set_thread_id(value);
+  SetHasBit(_impl_._has_bits_[0], 0x00000040U);
+  // @@protoc_insertion_point(field_set:message.ImgChatMsgRsp.thread_id)
+}
+inline ::int32_t ImgChatMsgRsp::_internal_thread_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.thread_id_;
+}
+inline void ImgChatMsgRsp::_internal_set_thread_id(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.thread_id_ = value;
 }
 
 #ifdef __GNUC__

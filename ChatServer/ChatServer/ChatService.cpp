@@ -11,9 +11,19 @@
 #include "UserManager.h"
 #include "ChatGrpcClient.h"
 
-static int64_t getCurrentTimestamp() {
-    auto now = std::chrono::system_clock::now();
-    return std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+static std::string getCurrentTimestamp() {
+    std::time_t now = std::time(nullptr);
+    std::tm local_time{};
+
+#ifdef _WIN32
+    localtime_s(&local_time, &now);
+#else
+    localtime_r(&now, &local_time);
+#endif
+
+    std::ostringstream oss;
+    oss << std::put_time(&local_time, "%Y-%m-%d %H:%M:%S");
+    return oss.str();
 }
 
 bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo) {
@@ -591,6 +601,10 @@ void TextChatHandler(std::shared_ptr<Session> session, short msg_id, std::string
     }
 
 	bool b_save = MysqlManager::GetInstance()->AddChatMessage(chat_datas);
+    if (!b_save) {
+        rtvalue["error"] = ErrorCodes::LOAD_CHAT_FAILED;
+        return;
+    }
 
     for (const auto& chat_data : chat_datas) {
         Json::Value  chat_msg;
@@ -805,8 +819,6 @@ void ImgChatHandler(std::shared_ptr<Session> session, short msg_id, std::string 
         std::string return_str = rtvalue.toStyledString();
         session->Send(return_str, ID_IMG_CHAT_MSG_RSP);
         });
-    // 处理图片消息的存储和转发逻辑
-    // ...
 }
 
 REGISTER_CALL_BACK(ID_IMG_CHAT_MSG_REQ, ImgChatHandler);

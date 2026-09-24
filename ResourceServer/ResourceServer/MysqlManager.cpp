@@ -102,7 +102,12 @@ bool MysqlManager::UpdateHeadInfo(int64_t uid, const std::string& icon) {
 
 bool MysqlManager::UpdateUploadStatus(int chat_message_id)
 {
-    return _dao.UpdateUploadStatus(chat_messag_id);
+    return _dao.UpdateUploadStatus(chat_message_id);
+}
+
+std::shared_ptr<ChatMessage> MysqlManager::GetChatMsgById(int chat_message_id)
+{
+    return _dao.GetChatMsgById(chat_message_id);
 }
 
 MysqlManager::MysqlManager() 

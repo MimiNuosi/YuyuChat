@@ -3,9 +3,11 @@
 #include "base64.h"
 #include "const.h"
 #include "MysqlManager.h"
+#include "RedisManager.h"
 #include "FileWorker.h"
 #include "FileService.h"
 #include "FileSystem.h"
+#include "ChatGrpcClient.h"
 
 Json::Value WriteChunkToFile(std::shared_ptr<FileTask> task) {
     Json::Value result;
@@ -94,17 +96,30 @@ void ImgChatUploadFileHandler(std::shared_ptr<FileTask> task) {
         std::cout << "[文件系统] 聊天图片写入完毕: " << task->_name
             << " (MessageID: " << task->_msg_id << ")" << std::endl;
 
-        // TODO: 
         // a. 更新 MySQL 中 chat_message 表的状态（标记为已送达/落盘）
         bool b_success = MysqlManager::GetInstance()->UpdateUploadStatus(task->_msg_id);
+        if (!b_success) {
+            result["error"] = ErrorCodes::FileWritePermissionFailed;
+        }
+
+        //查看redis里用户是否在线
+        std::string uid_ip_value = "";
+        auto receiver_str = std::to_string(task->_receiver);
+        auto uid_ip_key = USERIPPREFIX + receiver_str;
+        bool b_ip = RedisManager::GetInstance()->Get(uid_ip_key, uid_ip_value);
 
         // b. 通过 gRPC 通知 ChatServer，将图片消息推给接收方客户端
+        if (b_ip) {
+            ChatGrpcClient::GetInstance()->ImgChatMsg(task->_chat_msg_id, uid_ip_value);
+        }
     }
 
     // 3. 触发由 LogicService 传递过来的异步回包闭包 (发回 ID_IMG_CHAT_UPLOAD_RSP)
-    if (task->_callback) {
-        task->_callback(result);
-    }
+    Defer defer([&task, &result]() {
+        if (task->_callback) {
+            task->_callback(result);
+        }
+        });
 }
 
 

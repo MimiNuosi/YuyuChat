@@ -1,4 +1,5 @@
 #include "MysqlManager.h"
+#include "RedisManager.h"
 
 MysqlManager::~MysqlManager() {}
 
@@ -65,6 +66,48 @@ std::shared_ptr<PageResult> MysqlManager::LoadChatMessages(int64_t threadId, int
 
 bool MysqlManager::AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas) {
     return _dao.AddChatMessage(chat_datas);
+}
+
+bool MysqlManager::UpdateHeadInfo(int64_t uid, const std::string& icon) {
+    bool db_res = _dao.UpdateHeadInfo(uid, icon);
+    if (!db_res) {
+        return false;
+    }
+
+    const std::string base_key = USER_BASE_INFO + std::to_string(uid);
+
+    // 1) 先删旧缓存，避免其他服务继续读到旧 icon
+    if (!RedisManager::GetInstance()->Del(base_key)) {
+        std::cerr << "[Warn] Del ubaseinfo cache failed, uid=" << uid << std::endl;
+    }
+
+    // 2) 用数据库权威数据回填，顺带加上过期时间，杜绝永久脏缓存
+    auto user = _dao.GetUser(static_cast<int>(uid));
+    if (user != nullptr) {
+        Json::Value root;
+        root["uid"] = user->uid;
+        root["name"] = user->name;
+        root["password"] = user->password;
+        root["email"] = user->email;
+        root["nick"] = user->nick;
+        root["desc"] = user->desc;
+        root["sex"] = user->sex;
+        root["icon"] = user->icon;
+        if (!RedisManager::GetInstance()->Set(base_key, root.toStyledString(), 86400)) {
+            std::cerr << "[Warn] refresh ubaseinfo cache failed, uid=" << uid << std::endl;
+        }
+    }
+    return true;
+}
+
+bool MysqlManager::UpdateUploadStatus(int chat_message_id)
+{
+    return _dao.UpdateUploadStatus(chat_message_id);
+}
+
+std::shared_ptr<ChatMessage> MysqlManager::GetChatMsgById(int chat_message_id)
+{
+    return _dao.GetChatMsgById(chat_message_id);
 }
 
 MysqlManager::MysqlManager() 

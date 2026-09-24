@@ -351,12 +351,12 @@ void ChatPage::DownloadFileFinished(std::shared_ptr<MsgInfo> msg_info, QString f
         auto* bubble = iter.value()->GetBubble();
         auto* pic_bubble = dynamic_cast<PictureBubble*>(bubble);
         if (pic_bubble) {
-            // 🌟 方案 B 纯 View 调用：直接替换为下载好的本地图片，并切换状态
+            // 直接替换为下载好的本地图片，并切换状态
             pic_bubble->setPixmap(QPixmap(file_path));
             pic_bubble->setTransferState(TransferState::Completed);
         }
 
-        // 🌟 数据模型状态由 Controller 维护，不堆在 Bubble 里
+        //  数据模型状态由 Controller 维护，不堆在 Bubble 里
         auto chat_data_base = _chat_data->GetChatDataBase(msg_info->_msg_id);
         auto img_data = std::dynamic_pointer_cast<ImgChatData>(chat_data_base);
         if (img_data && img_data->_msg_info) {

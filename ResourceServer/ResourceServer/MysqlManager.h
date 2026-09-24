@@ -23,6 +23,7 @@ public:
     bool AddChatMessage(std::vector<std::shared_ptr<ChatMessage>>& chat_datas);
     bool UpdateHeadInfo(int64_t uid, const std::string& icon);
     bool UpdateUploadStatus(int chat_message_id);
+    std::shared_ptr<ChatMessage> GetChatMsgById(int chat_message_id);
 private:
     MysqlManager();
     MysqlDAO  _dao;

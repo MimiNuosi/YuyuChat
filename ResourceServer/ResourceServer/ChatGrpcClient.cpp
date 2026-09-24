@@ -184,4 +184,42 @@ KickUserRsp ChatGrpcClient::KickUser(std::string server_ip, const KickUserReq& r
 
 	return rsp;
 }
+ImgChatMsgRsp ChatGrpcClient::ImgChatMsg(int message_id, std::string chatserver)
+{
+	ClientContext context;
+	ImgChatMsgRsp reply;
+	ImgChatMsgReq request;
+	request.set_message_id(message_id);
+	if (_pools.find(chatserver) == _pools.end()) {
+		reply.set_error(ErrorCodes::ServerIpErr);
+		return reply;
+	}
+	auto chat_msg = MysqlManager::GetInstance()->GetChatMsgById(message_id);
+	request.set_file_name(chat_msg->content);
+	request.set_from_uid(chat_msg->sender_id);
+	request.set_to_uid(chat_msg->recv_id);
+	request.set_thread_id(chat_msg->thread_id);
+	// 资源文件路径
+	auto file_dir = ConfigManager::Inst().GetFileOutPath();
+	//该消息是接收方客户端发送过来的,服务器将资源存储在发送方的文件夹中
+	auto uid_str = std::to_string(chat_msg->sender_id);
+	auto file_path = (file_dir / uid_str / chat_msg->content);
+	boost::uintmax_t file_size = boost::filesystem::file_size(file_path);
+	request.set_total_size(file_size);
+
+	auto& pool_ = _pools[chatserver];
+	auto stub = pool_->getConnection();
+	Status status = stub->ImgChatMsg(&context, request, &reply);
+	Defer defer([&stub, &pool_, this]() {
+		pool_->returnConnection(std::move(stub));
+		});
+	if (status.ok()) {
+		return reply;
+	}
+	else {
+		reply.set_error(ErrorCodes::RPCFailed);
+		return reply;
+	}
+	return ImgChatMsgRsp();
+}
 ;

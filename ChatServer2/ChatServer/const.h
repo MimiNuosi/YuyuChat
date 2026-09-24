@@ -118,6 +118,14 @@ enum MSG_IDS {
     ID_SYNC_FILE_RSP = 1056,
 };
 
+enum class ChatMsgType {
+    TEXT = 0,
+    PIC = 1,
+    VIDEO = 2,
+    FILE = 3,
+};
+
+
 class Defer {
 public:
 	Defer(std::function<void()> func) : _func(func) {}

@@ -120,11 +120,15 @@ Status ChatServiceImpl::TextChatMsg(ServerContext* context, const TextChatMsgReq
 	Json::Value text_array;
     for (const auto& text : request->textmsgs()) {
 		Json::Value element;
-		element["msgid"] = text.msg_id();
-		element["content"] = text.msgcontent();
+        element["message_id"] = text.msg_id();
+        element["unique_id"] = text.unique_id();
+        element["content"] = text.msgcontent();
+        element["chat_time"] = text.chat_time();
+        element["status"] = 2;
         text_array.append(element);
     }
 	rtvalue["text_array"] = text_array;
+    rtvalue["thread_id"] = request->thread_id();
 
     std::string return_str = rtvalue.toStyledString();
 
@@ -200,6 +204,38 @@ Status ChatServiceImpl::KickUser(ServerContext* context, const KickUserReq* requ
         session->GetServer()->ClearSession(session->GetSessionId());
     }
 
+    return Status::OK;
+}
+
+Status ChatServiceImpl::ImgChatMsg(::grpc::ServerContext* context, const::message::ImgChatMsgReq* request, ::message::ImgChatMsgRsp* response)
+{
+    //查找用户是否在本服务器
+    auto uid = request->to_uid();
+    auto session = UserManager::GetInstance()->GetSession(uid);
+
+    Defer defer([request, response]() {
+        //设置具体的回包信息
+        response->set_error(ErrorCodes::Success);
+        response->set_message_id(request->message_id());
+        });
+
+    //用户在内存中则直接通知
+    if (session != nullptr) {
+        Json::Value  rtvalue;
+        rtvalue["error"] = ErrorCodes::Success;
+        rtvalue["message_id"] = request->message_id();
+        rtvalue["sender_id"] = request->from_uid();
+        rtvalue["receiver_id"] = request->to_uid();
+        rtvalue["img_name"] = request->file_name();
+        rtvalue["total_size"] = std::to_string(request->total_size());
+        rtvalue["thread_id"] = request->thread_id();
+
+        std::string return_str = rtvalue.toStyledString();
+        //通知图片聊天信息
+        session->Send(return_str, ID_NOTIFY_IMG_CHAT_MSG_REQ);
+    }
+    
+    //这里只是返回1个状态
     return Status::OK;
 }
 

@@ -68,6 +68,7 @@ signals:
     void sig_load_chat_msg(int thread_id, int last_msg_id, bool load_more, std::vector<std::shared_ptr<ChatDataBase>> chat_data);
     void sig_chat_msg_rsp(int thread_id , std::vector<std::shared_ptr<TextChatData> > msglists );
     void sig_chat_img_rsp(int thread_id, std::shared_ptr<ImgChatData> msg_list);
+    void sig_img_chat_msg(std::shared_ptr<ImgChatData> msg_list);
 };
 
 #endif // TCPMANAGER_H

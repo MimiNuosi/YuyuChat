@@ -310,7 +310,7 @@ void ImgChatUploadHandler(std::shared_ptr<Session> session, short msg_id, const 
 
         // 在异步任务完成后调用
         Json::Value rtvalue = result;
-        rtvalue["error"] = ErrorCodes::Success;
+        rtvalue["error"] = result["error"];
         rtvalue["total_size"] = std::to_string(total_size);
         rtvalue["seq"] = seq;
         rtvalue["name"] = name;
@@ -374,6 +374,76 @@ void ImgChatUploadHandler(std::shared_ptr<Session> session, short msg_id, const 
     );
 }
 
+void ImgChatDownloadHandler(std::shared_ptr<Session> session, const short& msg_req_id, const std::string& msg_data) {
+    Json::Reader reader;
+    Json::Value root;
+    reader.parse(msg_data, root);
+
+    auto seq = root["seq"].asInt();
+    auto name = root["name"].asString();
+    auto total_size_str = root["total_size"].asString();
+    auto trans_size_str = root["trans_size"].asString();
+    auto file_path = ConfigManager::Inst().GetFileOutPath();
+    auto message_id = root["message_id"].asInt();
+    auto sender = root["sender_id"].asInt();
+    auto receiver = root["receiver_id"].asInt();
+    auto token = root["token"].asString();
+    auto uid = root["uid"].asInt();
+    auto client_path = root["client_path"].asString();
+
+    auto callback = [=](const Json::Value& result) {
+        // 在异步任务完成后调用
+        Json::Value rtvalue = result;
+        rtvalue["name"] = name;
+        rtvalue["sender_id"] = sender;
+        rtvalue["receiver_id"] = receiver;
+        rtvalue["message_id"] = message_id;
+        rtvalue["client_path"] = client_path;
+        std::string return_str = rtvalue.toStyledString();
+        session->Send(return_str, ID_IMG_CHAT_DOWN_RSP);
+        };
+
+    // 使用 std::hash 对字符串进行哈希
+    std::hash<std::string> hash_fn;
+    size_t hash_value = hash_fn(name); // 生成哈希值
+    int index = hash_value % DOWN_LOAD_WORKER_COUNT;
+    std::cout << "Hash value: " << hash_value << std::endl;
+
+
+    //第一个包校验一下token是否合理
+    if (seq == 1) {
+        //从redis获取用户token是否正确
+        std::string uid_str = std::to_string(uid);
+        std::string token_key = USERTOKENPREFIX + uid_str;
+        std::string token_value = "";
+        bool success = RedisManager::GetInstance()->Get(token_key, token_value);
+        Json::Value  rtvalue;
+        if (!success) {
+            rtvalue["error"] = ErrorCodes::UidInvalid;
+            std::string return_str = rtvalue.toStyledString();
+            session->Send(return_str, ID_IMG_CHAT_DOWN_RSP);
+            return;
+        }
+
+        if (token_value != token) {
+            rtvalue["error"] = ErrorCodes::TokenInvalid;
+            std::string return_str = rtvalue.toStyledString();
+            session->Send(return_str, ID_IMG_CHAT_DOWN_RSP);
+            return;
+        }
+    }
+
+    auto sender_str = std::to_string(sender);
+    //转化为字符串
+    auto uid_str = std::to_string(uid);
+    auto file_path_str = (file_path / sender_str / name).string();
+
+    auto down_load_task = std::make_shared<DownloadTask>(session, uid, name, seq, file_path_str, client_path, callback);
+
+    FileSystem::GetInstance()->PostDownloadMsgToQue(down_load_task, index);
+}
+
+REGISTER_LOGIC_CALL_BACK(ID_IMG_CHAT_DOWN_REQ, ImgChatDownloadHandler)
 REGISTER_LOGIC_CALL_BACK(ID_IMG_CHAT_UPLOAD_REQ, ImgChatUploadHandler)
 REGISTER_LOGIC_CALL_BACK(ID_DOWN_LOAD_FILE_REQ, DownloadFileHandler)
 REGISTER_LOGIC_CALL_BACK(ID_UPLOAD_HEAD_ICON_REQ, UploadHeadIconHandler)
