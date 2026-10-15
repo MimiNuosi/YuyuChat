@@ -2,6 +2,7 @@
 #include "AsioIOContextPool.h"
 #include "Session.h"
 #include "UserManager.h"
+#include "ConfigManager.h"
 Server::Server(boost::asio::io_context& ioc, short port) :_ioc(ioc), 
 _acceptor(_ioc, tcp::endpoint(tcp::v4(), port)), _timer(_ioc, std::chrono::seconds(1)),
 _current_slot(0) 
@@ -35,14 +36,20 @@ void Server::on_timer(const boost::system::error_code& ec)
 		return;
 	}
 
+	// 每秒续一次存活键，TTL 设 5 秒：进程真死了，状态服务最多 5 秒后就不再往这台派新登录
+	static const std::string server_name = ConfigManager::Inst()["SelfServer"]["Name"];
+	RedisManager::GetInstance()->Set(SERVER_ALIVE_PREFIX + server_name, "1", 5);
+
 	std::list<std::weak_ptr<Session>> current_slot_session;
+	int next_check_slot = 0;
 	{
 		std::lock_guard<std::shared_mutex> lock(_mutex);
 		current_slot_session = std::move(_time_wheel[_current_slot]);
+		next_check_slot = _current_slot;
 		_current_slot = (_current_slot + 1) % HEART_BEAT_THRESHOLD;
 	}
 
-	time_t now = time(nullptr);
+	std::list<std::weak_ptr<Session>> alive_sessions;
 	for (auto& weak_session : current_slot_session) {
 		auto session = weak_session.lock();
 		if (!session) {
@@ -52,8 +59,13 @@ void Server::on_timer(const boost::system::error_code& ec)
 			session->SafeClearSession();
 		}
 		else {
-			UpdateHeartBeat(session);
+			alive_sessions.push_back(session);
 		}
+	}
+
+	if (!alive_sessions.empty()) {
+		std::lock_guard<std::shared_mutex> lock(_mutex);
+		_time_wheel[next_check_slot].splice(_time_wheel[next_check_slot].end(), alive_sessions);
 	}
 
 	_timer.expires_after(std::chrono::seconds(1));
@@ -67,7 +79,7 @@ void Server::on_timer(const boost::system::error_code& ec)
 void Server::UpdateHeartBeat(std::shared_ptr<Session> session)
 {
 	std::lock_guard<std::shared_mutex> lock(_mutex);
-	int target_slot = (_current_slot + HEART_BEAT_THRESHOLD ) % HEART_BEAT_THRESHOLD;
+	int target_slot = (_current_slot + HEART_BEAT_THRESHOLD - 1) % HEART_BEAT_THRESHOLD;
 	_time_wheel[target_slot].push_back(session);
 }
 

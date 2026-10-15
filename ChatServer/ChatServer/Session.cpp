@@ -18,6 +18,9 @@ Session::~Session()
 void Session::Start()
 {
 	UpdateHeartBeatTime();
+	if (_server != nullptr) {
+		_server->UpdateHeartBeat(shared_from_this());
+	}
 	auto self = shared_from_this();
 	memset(_data, 0, MAX_LENGTH);
 	_socket.async_read_some(boost::asio::buffer(_data, MAX_LENGTH),
@@ -62,9 +65,6 @@ bool Session::IsHeartBeatTimeout()
 void Session::UpdateHeartBeatTime()
 {
 	_last_heart_beat_time.store(time(nullptr));
-	if (_server != nullptr) {
-		_server->UpdateHeartBeat(shared_from_this());
-	}
 }
 
 void Session::SafeClearSession()

@@ -143,6 +143,7 @@ constexpr const char* USER_BASE_INFO = "ubaseinfo_";
 constexpr const char* LOGIN_COUNT = "logincount";
 constexpr const char* LOCK_PREFIX = "lock_";
 constexpr const char* USER_SESSION_PREFIX = "usession_";
+constexpr const char* SERVER_ALIVE_PREFIX = "server_alive_";
 //分布式锁的持有时间
 constexpr const int LOCK_TIME_OUT = 10;
 //分布式锁的重试时间
