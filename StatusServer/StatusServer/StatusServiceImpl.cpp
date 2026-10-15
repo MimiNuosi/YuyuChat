@@ -6,6 +6,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <sstream>
+#include <climits>
 
 std::string generate_unique_string() {
     boost::uuids::uuid uuid = boost::uuids::random_generator()();
@@ -33,49 +34,71 @@ StatusServiceImpl::StatusServiceImpl() : _server_index(0) {
     }
 }
 
+namespace {
+// Redis 里的 logincount 是字符串，可能是空的（新实例还没写过），也可能是脏数据。
+// 解析失败不能把异常抛进登录链路，所以在这里统一兜住：
+// 空值表示"还没人登录过"，按 0 处理；脏数据读不出真实负载，先放到最后再选。
+int parse_login_count(const std::string& raw) {
+    if (raw.empty()) {
+        return 0;
+    }
+
+    try {
+        return std::stoi(raw);
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[警告] logincount 解析失败，本次不优先选择该实例: value="
+            << raw << " what=" << e.what() << std::endl;
+        return INT_MAX;
+    }
+}
+}
+
 ChatServer StatusServiceImpl::getChatServer() {
     std::lock_guard<std::mutex> guard(_server_mtx);
 
-    auto lock_key = LOGIN_COUNT;
-    auto identifier = RedisManager::GetInstance()->acquireLock(lock_key, LOCK_TIME_OUT, ACQUIRE_TIME_OUT);
+    std::vector<ChatServer> candidates;
 
-    Defer defer([&]() {
-        if (!identifier.empty()) {
-            RedisManager::GetInstance()->releaseLock(lock_key, identifier);
+    // 1. 过滤：只筛选出心跳存活的服务器
+    for (auto& pair : _servers) {
+        std::string is_alive = "";
+        bool exist = RedisManager::GetInstance()->Get(SERVER_ALIVE_PREFIX + pair.second.name, is_alive);
+        if (exist && is_alive == "1") {
+            candidates.push_back(pair.second);
         }
-		});
+    }
 
-    if (_servers.empty()) {
-        std::cerr << "[Error] _servers is empty! Please check config.ini" << std::endl;
+    // 2. 一个都没筛出来，说明存活信息不可信（Redis 抖动、ChatServer 刚重启还没上报，
+    //    或者真的全挂了）。这时退化成在全部配置实例里挑：让客户端拿到地址去重试，
+    //    比在这里返回端口 0 更可控。
+    if (candidates.empty()) {
+        std::cerr << "[警告] 没有实例上报存活，退化为在全部配置实例中选择，请检查 Redis 与 ChatServer 心跳" << std::endl;
+        for (auto& pair : _servers) {
+            candidates.push_back(pair.second);
+        }
+    }
+
+    // 3. 配置里一个实例都没有：这是部署问题，交给调用方回错误码
+    if (candidates.empty()) {
+        std::cerr << "[错误] chatservers 配置为空，请检查 StatusServer 的 config.ini" << std::endl;
         ChatServer empty_server;
         empty_server.port = "0";
-        return empty_server; // 如果是空的，提前返回，绝对不能往下走！
-    }
-    auto minServer = _servers.begin()->second;
-    auto count_str = RedisManager::GetInstance()->HGet(LOGIN_COUNT, minServer.name);
-    if (count_str.empty()) {
-        minServer.con_count = INT_MAX;
-    }
-    else {
-        minServer.con_count = std::stoi(count_str);
+        return empty_server;
     }
 
-    for (auto& server : _servers) {
-        if (server.second.name == minServer.name) {
-            continue;
-        }
-        auto count_str = RedisManager::GetInstance()->HGet(LOGIN_COUNT, server.second.name);
-        if (count_str.empty()) {
-			server.second.con_count = INT_MAX;
-        }
-        else {
-			server.second.con_count = std::stoi(count_str);
-        }
+    // 4. 在候选里挑选连接数最少的一个
+    ChatServer minServer = candidates[0];
+    minServer.con_count = parse_login_count(RedisManager::GetInstance()->HGet(LOGIN_COUNT, minServer.name));
 
-        if (server.second.con_count < minServer.con_count) {
-            minServer = server.second;
+    for (size_t i = 1; i < candidates.size(); ++i) {
+        int cnt = parse_login_count(RedisManager::GetInstance()->HGet(LOGIN_COUNT, candidates[i].name));
+        candidates[i].con_count = cnt;
+
+        if (cnt < minServer.con_count) {
+            minServer = candidates[i];
         }
     }
+
     return minServer;
 }
 
@@ -87,6 +110,16 @@ void StatusServiceImpl::insertToken(int uid, std::string token) {
 
 Status StatusServiceImpl::GetChatServer(ServerContext* context, const GetChatServerReq* request, GetChatServerRsp* reply) {
     const auto& server = getChatServer();
+
+    // 端口 0 是 getChatServer 约定的"没有可用实例"哨兵值。
+    // 这里必须回一个非 0 错误码：否则客户端会收到"成功 + 端口 0"，
+    // 然后去连一个不存在的端口，排查时只能看到连接被拒。
+    if (server.port.empty() || server.port == "0") {
+        std::cerr << "[错误] 没有可用的 ChatServer，拒绝 uid=" << request->uid() << " 的取服请求" << std::endl;
+        reply->set_error(ErrorCodes::RPCFailed);
+        return Status::OK;
+    }
+
     reply->set_host(server.host);
     reply->set_port(server.port);
     reply->set_error(ErrorCodes::Success);
